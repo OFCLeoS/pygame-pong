@@ -1,0 +1,15 @@
+from pygame import Vector2
+from pygame import Color
+
+from geometry.shape import Shape
+
+
+class Circle(Shape):
+    def __init__(self, radius: float, starting_pos: Vector2, colour: Color):
+        super().__init__(starting_pos)
+        self.radius = radius
+        self.colour = colour
+
+    def set_position(self, position: Vector2):
+        self._position = position
+        pass
