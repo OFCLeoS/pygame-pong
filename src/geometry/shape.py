@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
 from pygame import Vector2
 
+from geometry.box_collider import BoxCollider
+
 
 class Shape(ABC):
-    def __init__(self, starting_pos: Vector2):
+    def __init__(self, starting_pos: Vector2, box_collider_center: Vector2, box_collider_extents: Vector2):
         self._position = starting_pos
+        self.box_collider = BoxCollider(
+            box_collider_center, box_collider_extents)
 
     def get_position(self):
         return self._position

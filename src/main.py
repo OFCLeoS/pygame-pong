@@ -37,7 +37,7 @@ player2_controller = ShapeController(
 circle = Circle(BALL_SIZE, Vector2(player1.get_position().x+1,
                 screen.get_height() / 2), Color(255, 255, 255))
 
-movement = Vector2(0, 0)
+movement = Vector2(3, 3)
 while running:
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
@@ -68,66 +68,6 @@ while running:
         movement.x *= -1
     elif circle.get_position().x >= screen.get_width()-circle.radius:
         movement.x *= -1
-    # PLAYER 1 RIGHT COLLISION
-    elif circle.get_position().x <= player1.get_position().x + player1.rect_like.width+circle.radius and circle.get_position().x >= player1.get_position().x+circle.radius:
-        print("HIT RIGHT")
-        # Top Collision
-        if circle.get_position().y >= player1.get_position().y and circle.get_position().y <= player1.get_position().y + (player1.rect_like.height/2):
-            movement.x = abs(movement.x)
-            movement.y = -abs(movement.y)
-        # Bottom Collision
-        elif circle.get_position().y > player1.get_position().y + (player1.rect_like.height/2) and circle.get_position().y <= player1.get_position().y + player1.rect_like.height:
-            movement.x = abs(movement.x)
-            movement.y = abs(movement.y)
-    # PLAYER 1 LEFT COLLISION
-    elif circle.get_position().x >= player1.get_position().x-circle.radius and circle.get_position().x <= player1.get_position().x + player1.rect_like.width-circle.radius:
-        print("HIT LEFT")
-        # Top Collision
-        if circle.get_position().y >= player1.get_position().y and circle.get_position().y <= player1.get_position().y + (player1.rect_like.height/2):
-            movement.x = -abs(movement.x)
-            movement.y = -abs(movement.y)
-        # Bottom Collision
-        elif circle.get_position().y > player1.get_position().y + (player1.rect_like.height/2) and circle.get_position().y <= player1.get_position().y + player1.rect_like.height:
-            movement.x = -abs(movement.x)
-            movement.y = abs(movement.y)
-    # PLAYER 1 TOP COLLISION
-    elif circle.get_position().y >= player1.get_position().y-circle.radius and circle.get_position().y <= player1.get_position().y + player1.rect_like.height-circle.radius:
-        # Right Collision
-        print("HIT!!!")
-        if circle.get_position().x >= player1.get_position().x+(player1.rect_like.width/2) and circle.get_position().x <= player1.get_position().x + player1.rect_like.width + circle.radius:
-            print("HIT")
-            movement.y = -abs(movement.y)
-            movement.x = abs(movement.x)
-            circle.set_position(
-                Vector2(circle.get_position().x, player1.get_position().y-circle.radius))
-        # Left Collision
-        elif circle.get_position().x >= player1.get_position().x-circle.radius and circle.get_position().x < player1.get_position().x + (player1.rect_like.width/2):
-            print("HIT")
-            movement.y = -abs(movement.y)
-            movement.x = -abs(movement.x)
-            circle.set_position(
-                Vector2(circle.get_position().x, player1.get_position().y-circle.radius))
-    # PLAYER 1 BOTTOM COLLISION
-    elif circle.get_position().y <= player1.get_position().y + player1.rect_like.height+circle.radius and circle.get_position().y >= player1.get_position().y+circle.radius:
-        # Right Collision
-        if circle.get_position().x >= player1.get_position().x+(player1.rect_like.width/2) and circle.get_position().x <= player1.get_position().x + player1.rect_like.width + circle.radius:
-            movement.y = abs(movement.y)
-            movement.x = abs(movement.x)
-            circle.set_position(
-                Vector2(circle.get_position().x, player1.get_position().y+player1.rect_like.height+circle.radius))
-        # Left Collision
-        elif circle.get_position().x >= player1.get_position().x-circle.radius and circle.get_position().x < player1.get_position().x + (player1.rect_like.width/2):
-            movement.y = abs(movement.y)
-            movement.x = -abs(movement.x)
-            circle.set_position(
-                Vector2(circle.get_position().x, player1.get_position().y+player1.rect_like.height+circle.radius))
-
-    # elif circle.get_position().y <= 0+circle.radius:
-    #     movement.y *= -1
-    # elif circle.get_position().x <= 0+circle.radius:
-    #     movement.x *= -1
-    # elif circle.get_position().x >= screen.get_width()-circle.radius:
-    #     movement.x *= -1
 
     # flip() the display to put your work on screen
     pygame.display.flip()
