@@ -6,7 +6,7 @@ from geometry.shape import Shape
 
 class Circle(Shape):
     def __init__(self, radius: float, starting_pos: Vector2, colour: Color):
-        super().__init__(starting_pos, starting_pos, Vector2(radius, radius))
+        super().__init__(starting_pos, colour, starting_pos, Vector2(radius, radius))
         self.radius = radius
         self.colour = colour
 

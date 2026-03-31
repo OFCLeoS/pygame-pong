@@ -13,19 +13,30 @@ class PhysicsSystem:
         self.physics_objects = initial_physics_objects
 
     def handle_physics(self):
-        for physics_objects in self.physics_objects:
-            pass
-    
+        for physics_object in self.physics_objects:
+            physics_object.tick()
+            object_collider = physics_object.shape.box_collider
+            for collider in self.colliders:
+                # Physics Object cannot collide with itself
+                if collider != object_collider and PhysicsSystem.is_colliding(object_collider, collider):
+                    side = PhysicsSystem.get_collision_side(
+                        object_collider, collider)
+                    physics_object.direction.x *= -1
+                    # WHEN BALL HITS PADLE -> COLLISION DISABLED ON PADLE
+                    # PADLES HANDLE COLLISIONS
+                    # COLLISION NORMALS
+                    break
+                
+    # TODO: REFACTOR!
     @staticmethod
     def is_colliding(collider1: BoxCollider, collider2: BoxCollider) -> bool:
-        return False
-        # return (
-        #     collider1.center.x < collider2.center.x + collider2.extents.x and
-        #     a.x + a.w > b.x and
-        #     a.y < b.y + b.h and
-        #     a.y + a.h > b.y
-        # )
-    
+        return (
+            collider1.center.x-collider1.extents.x < collider2.center.x-collider2.extents.x + (collider2.extents.x*2) and
+            collider1.center.x-collider1.extents.x + (collider1.extents.x*2) > collider2.center.x-collider2.extents.x and
+            collider1.center.y-collider1.extents.y < collider2.center.y-collider2.extents.y + (collider2.extents.y*2) and
+            collider1.center.y-collider1.extents.y + (collider1.extents.y * 2) > collider2.center.y-collider2.extents.y
+        )
+
     @staticmethod
     def get_collision_side(collider1: BoxCollider, collider2: BoxCollider):
         # Centers

@@ -8,6 +8,9 @@ from geometry.circle import Circle
 from geometry.rectangle import Rectangle
 
 from logic.shape_controller import ShapeController
+from logic.physics_system import PhysicsSystem
+from logic.shape_game_physics_object import ShapeGamePhysicsObject
+
 
 BALL_SIZE = 15
 
@@ -19,7 +22,7 @@ pygame.init()
 screen = pygame.display.set_mode((1100, 900))
 clock = pygame.time.Clock()
 running = True
-dt = 0
+delta_time = 0
 
 player1 = Rectangle(Vector2(RECT_WIDTH, RECT_HEIGHT), Vector2(screen.get_width(
 ) / 15, (screen.get_height() / 2)-(RECT_HEIGHT/2)), Color(255, 255, 255))
@@ -34,11 +37,32 @@ player1_controller = ShapeController(
 player2_controller = ShapeController(
     player2, {pygame.K_UP: Vector2(0, -5), pygame.K_DOWN: Vector2(0, 5)})
 
-circle = Circle(BALL_SIZE, Vector2(player1.get_position().x+1,
-                screen.get_height() / 2), Color(255, 255, 255))
+ball_starting_speed = Vector2(3,3)
+ball = ShapeGamePhysicsObject(Circle(BALL_SIZE, Vector2(
+    screen.get_width()/2, screen.get_height() / 2), Color(255, 255, 255)),ball_starting_speed)
 
-movement = Vector2(3, 3)
+
+physics_system = PhysicsSystem(
+    [player1.box_collider, player2.box_collider, ball.shape.box_collider], [ball])
+
 while running:
+
+    # NETWORKING ARCHITECTURE HERE
+    # UDP
+    # - Timestamped packages
+    # Server-Client Structure
+    # - One player's machine is the Structure
+    # Server sends players
+    # - Ball Position -> THIS SHOULD BE CALCULATED IN THE CLIENT?
+    # - Ball Direction
+    # - Player Position
+    # - Score
+    # Players send to Server
+    # - Player ID
+    # - Desired Movement Direction
+    # Server stops receiving packets for x time -> timeout
+    ##############################
+
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
     for event in pygame.event.get():
@@ -52,29 +76,29 @@ while running:
     player1_controller.handle_movement(keys)
     player2_controller.handle_movement(keys)
 
-    pygame.draw.circle(screen, circle.colour,
-                       circle.get_position(), circle.radius)
+    pygame.draw.circle(screen, ball.shape.colour,
+                       ball.shape.get_position(), ball.shape.box_collider.extents.x)
     pygame.draw.rect(screen, player1.colour, player1.rect_like)
     pygame.draw.rect(screen, player2.colour, player2.rect_like)
 
     # TODO: Make middle just change y dir? and keep in mind player dir?
 
-    circle.set_position((circle.get_position() + movement))
-    if circle.get_position().y >= screen.get_height()-circle.radius:
-        movement.y *= -1
-    elif circle.get_position().y <= 0+circle.radius:
-        movement.y *= -1
-    elif circle.get_position().x <= 0+circle.radius:
-        movement.x *= -1
-    elif circle.get_position().x >= screen.get_width()-circle.radius:
-        movement.x *= -1
+    physics_system.handle_physics()
+    
+    if ball.shape.get_position().y >= screen.get_height()-ball.shape.box_collider.extents.x:
+        ball.direction.y *= -1
+    elif ball.shape.get_position().y <= 0+ball.shape.box_collider.extents.x:
+        ball.direction.y *= -1
+    elif ball.shape.get_position().x <= 0+ball.shape.box_collider.extents.x:
+        ball.direction.x *= -1
+    elif ball.shape.get_position().x >= screen.get_width()-ball.shape.box_collider.extents.x:
+        ball.direction.x *= -1
 
     # flip() the display to put your work on screen
     pygame.display.flip()
 
     # limits FPS to 60
-    # dt is delta time in seconds since last frame, used for framerate-
     # independent physics.
-    dt = clock.tick(60) / 1000
+    delta_time = clock.tick(60) / 1000
 
 pygame.quit()

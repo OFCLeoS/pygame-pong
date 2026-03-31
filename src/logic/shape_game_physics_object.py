@@ -5,7 +5,6 @@ from geometry.shape import Shape
 
 class ShapeGamePhysicsObject:
     def __init__(self, shape: Shape, direction: Vector2 = Vector2(0,0)):
-        self.direction = Vector2(0, 0)
         self.shape = shape
         self.direction = direction
 
