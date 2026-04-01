@@ -24,6 +24,8 @@ clock = pygame.time.Clock()
 running = True
 delta_time = 0
 
+# BoxCollider(Vector2(starting_pos.x+(size.x/2),starting_pos.y+(size.y/2)), Vector2(size.x/2, size.y/2))
+
 player1 = Rectangle(Vector2(RECT_WIDTH, RECT_HEIGHT), Vector2(screen.get_width(
 ) / 15, (screen.get_height() / 2)-(RECT_HEIGHT/2)), Color(255, 255, 255))
 
@@ -43,7 +45,7 @@ ball = ShapeGamePhysicsObject(Circle(BALL_SIZE, Vector2(
 
 
 physics_system = PhysicsSystem(
-    [player1.box_collider, player2.box_collider, ball.shape.box_collider], [ball])
+    [player1.collider, player2.collider, ball.shape.collider], [ball])
 
 while running:
 
@@ -77,7 +79,7 @@ while running:
     player2_controller.handle_movement(keys)
 
     pygame.draw.circle(screen, ball.shape.colour,
-                       ball.shape.get_position(), ball.shape.box_collider.extents.x)
+                       ball.shape.get_position(), ball.shape.collider.extents.x)
     pygame.draw.rect(screen, player1.colour, player1.rect_like)
     pygame.draw.rect(screen, player2.colour, player2.rect_like)
 
@@ -85,13 +87,13 @@ while running:
 
     physics_system.handle_physics()
     
-    if ball.shape.get_position().y >= screen.get_height()-ball.shape.box_collider.extents.x:
+    if ball.shape.get_position().y >= screen.get_height()-ball.shape.collider.extents.x:
         ball.direction.y *= -1
-    elif ball.shape.get_position().y <= 0+ball.shape.box_collider.extents.x:
+    elif ball.shape.get_position().y <= 0+ball.shape.collider.extents.x:
         ball.direction.y *= -1
-    elif ball.shape.get_position().x <= 0+ball.shape.box_collider.extents.x:
+    elif ball.shape.get_position().x <= 0+ball.shape.collider.extents.x:
         ball.direction.x *= -1
-    elif ball.shape.get_position().x >= screen.get_width()-ball.shape.box_collider.extents.x:
+    elif ball.shape.get_position().x >= screen.get_width()-ball.shape.collider.extents.x:
         ball.direction.x *= -1
 
     # flip() the display to put your work on screen

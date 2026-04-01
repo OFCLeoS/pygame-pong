@@ -3,7 +3,7 @@ from typing import List
 from pygame import Vector2
 from pygame.key import ScancodeWrapper
 from geometry.shape import Shape
-from geometry.box_collider import BoxCollider
+from geometry.colliders.box_collider import BoxCollider
 from logic.shape_game_physics_object import ShapeGamePhysicsObject
 
 
@@ -15,18 +15,15 @@ class PhysicsSystem:
     def handle_physics(self):
         for physics_object in self.physics_objects:
             physics_object.tick()
-            object_collider = physics_object.shape.box_collider
+            object_collider = physics_object.shape.collider
             for collider in self.colliders:
                 # Physics Object cannot collide with itself
-                if collider != object_collider and PhysicsSystem.is_colliding(object_collider, collider):
-                    side = PhysicsSystem.get_collision_side(
-                        object_collider, collider)
-                    physics_object.direction.x *= -1
+                if collider.active and collider != object_collider and PhysicsSystem.is_colliding(object_collider, collider):
+                    side = PhysicsSystem.get_collision_side(object_collider, collider)
+                    collider.on_collision(physics_object,side)
                     # WHEN BALL HITS PADLE -> COLLISION DISABLED ON PADLE
-                    # PADLES HANDLE COLLISIONS
-                    # COLLISION NORMALS
                     break
-                
+
     # TODO: REFACTOR!
     @staticmethod
     def is_colliding(collider1: BoxCollider, collider2: BoxCollider) -> bool:
@@ -34,11 +31,12 @@ class PhysicsSystem:
             collider1.center.x-collider1.extents.x < collider2.center.x-collider2.extents.x + (collider2.extents.x*2) and
             collider1.center.x-collider1.extents.x + (collider1.extents.x*2) > collider2.center.x-collider2.extents.x and
             collider1.center.y-collider1.extents.y < collider2.center.y-collider2.extents.y + (collider2.extents.y*2) and
-            collider1.center.y-collider1.extents.y + (collider1.extents.y * 2) > collider2.center.y-collider2.extents.y
+            collider1.center.y-collider1.extents.y +
+            (collider1.extents.y * 2) > collider2.center.y-collider2.extents.y
         )
 
     @staticmethod
-    def get_collision_side(collider1: BoxCollider, collider2: BoxCollider):
+    def get_collision_side(collider1: BoxCollider, collider2: BoxCollider) -> Vector2:
         # Centers
 
         dx = collider1.center.x - collider2.center.x
@@ -50,12 +48,12 @@ class PhysicsSystem:
         if overlap_x < overlap_y:
             # Horizontal collision
             if dx > 0:
-                return "left"   # a hit b on its left side
+                return Vector2(-1, 0)  # a hit b on its left side
             else:
-                return "right"
+                return Vector2(-1, 0)  # a hit b on its right side
         else:
             # Vertical collision
             if dy > 0:
-                return "top"
+                return Vector2(0, -1)  # a hit b on its top side
             else:
-                return "bottom"
+                return Vector2(0, 1)  # a hit b on its bottom side
