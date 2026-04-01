@@ -18,7 +18,7 @@ class BoxCollider(ABC):
         self.active = True
 
     # TODO: Sure about using multiple threads?
-    def __deactive(self, delay: float):
+    def _deactive(self, delay: float):
         self.active = False
         t = threading.Timer(delay, self.__activate)
         t.start()

@@ -5,6 +5,8 @@ from pygame import Vector2
 from pygame import Color
 
 from geometry.circle import Circle
+from geometry.colliders.ball_collider import BallCollider
+from geometry.colliders.paddle_collider import PaddleCollider
 from geometry.rectangle import Rectangle
 
 from logic.shape_controller import ShapeController
@@ -12,7 +14,7 @@ from logic.physics_system import PhysicsSystem
 from logic.shape_game_physics_object import ShapeGamePhysicsObject
 
 
-BALL_SIZE = 15
+BALL_RADIUS = 15
 
 RECT_WIDTH = 30
 RECT_HEIGHT = 200
@@ -24,14 +26,24 @@ clock = pygame.time.Clock()
 running = True
 delta_time = 0
 
-# BoxCollider(Vector2(starting_pos.x+(size.x/2),starting_pos.y+(size.y/2)), Vector2(size.x/2, size.y/2))
+# Game Setup
+player_size = Vector2(RECT_WIDTH, RECT_HEIGHT)
 
-player1 = Rectangle(Vector2(RECT_WIDTH, RECT_HEIGHT), Vector2(screen.get_width(
-) / 15, (screen.get_height() / 2)-(RECT_HEIGHT/2)), Color(255, 255, 255))
+player1_starting_pos = Vector2(
+    screen.get_width() / 15, (screen.get_height() / 2)-(RECT_HEIGHT/2))
+player1_collider = PaddleCollider(Vector2(player1_starting_pos.x+(player_size.x/2),
+                                  player1_starting_pos.y+(player_size.y/2)), Vector2(player_size.x/2, player_size.y/2))
 
-player2 = Rectangle(Vector2(RECT_WIDTH, RECT_HEIGHT), Vector2(screen.get_width(
-)-(screen.get_width() / 15)-RECT_WIDTH, (screen.get_height() / 2)-(RECT_HEIGHT/2)), Color(255, 255, 255))
+player1 = Rectangle(player_size, player1_starting_pos,
+                    Color(255, 255, 255), player1_collider)
 
+player2_starting_pos = Vector2(screen.get_width(
+)-(screen.get_width() / 15)-RECT_WIDTH, (screen.get_height() / 2)-(RECT_HEIGHT/2))
+player2_collider = PaddleCollider(Vector2(player2_starting_pos.x+(player_size.x/2),
+                                  player2_starting_pos.y+(player_size.y/2)), Vector2(player_size.x/2, player_size.y/2))
+
+player2 = Rectangle(player_size, player2_starting_pos,
+                    Color(255, 255, 255), player2_collider)
 
 player1_controller = ShapeController(
     player1, {pygame.K_w: Vector2(0, -10), pygame.K_s: Vector2(0, 10)})
@@ -39,9 +51,12 @@ player1_controller = ShapeController(
 player2_controller = ShapeController(
     player2, {pygame.K_UP: Vector2(0, -5), pygame.K_DOWN: Vector2(0, 5)})
 
-ball_starting_speed = Vector2(3,3)
-ball = ShapeGamePhysicsObject(Circle(BALL_SIZE, Vector2(
-    screen.get_width()/2, screen.get_height() / 2), Color(255, 255, 255)),ball_starting_speed)
+ball_starting_speed = Vector2(3, 3)
+ball_starting_pos = Vector2(screen.get_width()/2, screen.get_height() / 2)
+ball_collider = BallCollider(
+    ball_starting_pos, Vector2(BALL_RADIUS, BALL_RADIUS))
+ball = ShapeGamePhysicsObject(Circle(BALL_RADIUS, ball_starting_pos, Color(
+    255, 255, 255), ball_collider), ball_starting_speed)
 
 
 physics_system = PhysicsSystem(
@@ -86,7 +101,7 @@ while running:
     # TODO: Make middle just change y dir? and keep in mind player dir?
 
     physics_system.handle_physics()
-    
+
     if ball.shape.get_position().y >= screen.get_height()-ball.shape.collider.extents.x:
         ball.direction.y *= -1
     elif ball.shape.get_position().y <= 0+ball.shape.collider.extents.x:

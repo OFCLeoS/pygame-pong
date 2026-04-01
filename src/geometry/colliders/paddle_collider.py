@@ -39,4 +39,4 @@ class PaddleCollider(BoxCollider):
                 physics_object.direction.x = -abs(physics_object.direction.x)
             else:
                 physics_object.direction.x = abs(physics_object.direction.x)
-        self.__deactive(0.5)
+        self._deactive(0.5)

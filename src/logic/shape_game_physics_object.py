@@ -1,10 +1,10 @@
 import pygame
 from pygame import Vector2
 from pygame.key import ScancodeWrapper
-from geometry.shape import Shape
+# from geometry.shape import Shape
 
 class ShapeGamePhysicsObject:
-    def __init__(self, shape: Shape, direction: Vector2 = Vector2(0,0)):
+    def __init__(self, shape, direction: Vector2 = Vector2(0,0)):
         self.shape = shape
         self.direction = direction
 

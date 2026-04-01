@@ -2,12 +2,12 @@ from pygame import Vector2
 from pygame import Color
 from pygame import Rect
 
-from geometry.colliders.box_collider import BoxCollider
+# from geometry.colliders.box_collider import BoxCollider
 from geometry.shape import Shape
 
 
 class Rectangle(Shape):
-    def __init__(self, size: Vector2, starting_pos: Vector2, colour: Color, collider: BoxCollider):
+    def __init__(self, size: Vector2, starting_pos: Vector2, colour: Color, collider):
         super().__init__(starting_pos, colour, collider)
         self.rect_like = Rect(starting_pos, size)
         self.colour = colour
