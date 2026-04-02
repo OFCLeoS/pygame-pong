@@ -46,12 +46,12 @@ player2 = Rectangle(player_size, player2_starting_pos,
                     Color(255, 255, 255), player2_collider)
 
 player1_controller = ShapeController(
-    player1, {pygame.K_w: Vector2(0, -10), pygame.K_s: Vector2(0, 10)})
+    player1, {pygame.K_w: Vector2(0, -15), pygame.K_s: Vector2(0,15)})
 
 player2_controller = ShapeController(
-    player2, {pygame.K_UP: Vector2(0, -5), pygame.K_DOWN: Vector2(0, 5)})
+    player2, {pygame.K_UP: Vector2(0, -15), pygame.K_DOWN: Vector2(0, 15)})
 
-ball_starting_speed = Vector2(3, 3)
+ball_starting_speed = Vector2(10, 3)
 ball_starting_pos = Vector2(screen.get_width()/2, screen.get_height() / 2)
 ball_collider = BallCollider(
     ball_starting_pos, Vector2(BALL_RADIUS, BALL_RADIUS))

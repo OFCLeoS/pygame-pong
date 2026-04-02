@@ -50,7 +50,7 @@ class PhysicsSystem:
             if dx > 0:
                 return Vector2(-1, 0)  # a hit b on its left side
             else:
-                return Vector2(-1, 0)  # a hit b on its right side
+                return Vector2(1, 0)  # a hit b on its right side
         else:
             # Vertical collision
             if dy > 0:
