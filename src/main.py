@@ -58,6 +58,11 @@ is_paused = False
 time_since_pause = 0
 last_goal_player_id = 0
 
+
+def draw_text(text, x, y):
+    txt = text_font.render(text, True, SCORE_COLOUR)
+    screen.blit(txt, (x, y))
+
 # Game Setup
 player_size = Vector2(PLAYER_WIDTH, PLAYER_HEIGHT)
 
@@ -81,11 +86,14 @@ player2 = Rectangle(player_size, player2_starting_pos,
 
 # TODO: MOVEMENT CONSTRAINITS?
 # Player Controllers
+player_min_y_pos = WALL_THICKNESS
+player_max_y_pos = int(screen.get_height()-player_size.y - WALL_THICKNESS)
+
 player1_controller = ShapeController(
-    player1, {pygame.K_w: Vector2(0, -PLAYER_SPEED), pygame.K_s: Vector2(0, PLAYER_SPEED)})
+    player1, {pygame.K_w: Vector2(0, -PLAYER_SPEED), pygame.K_s: Vector2(0, PLAYER_SPEED)},player_min_y_pos,player_max_y_pos)
 
 player2_controller = ShapeController(
-    player2, {pygame.K_UP: Vector2(0, -PLAYER_SPEED), pygame.K_DOWN: Vector2(0, PLAYER_SPEED)})
+    player2, {pygame.K_UP: Vector2(0, -PLAYER_SPEED), pygame.K_DOWN: Vector2(0, PLAYER_SPEED)},player_min_y_pos,player_max_y_pos)
 
 # Ball Setup
 ball_starting_speed = Vector2(10, 3)
@@ -125,11 +133,6 @@ wall_bottom_collider = WallCollider(Vector2(screen.get_width()/2,
 
 wall_bottom = Rectangle(top_bottom_wall_size, wall_bottom_pos,
                         WALL_COLOUR, wall_bottom_collider)
-
-
-def draw_text(text, x, y):
-    txt = text_font.render(text, True, SCORE_COLOUR)
-    screen.blit(txt, (x, y))
 
 
 def on_goal(last_goal_id: int):
@@ -187,6 +190,8 @@ physics_system = PhysicsSystem(
     [player1.collider, player2.collider, ball.shape.collider, wall_top_collider, wall_bottom_collider, goal_left_collider, goal_right_collider], [ball])
 
 
+last_goal_player_id = random.randint(1,2)
+pause_game()
 def draw_game():
     # Draw Terrain
     for line in terrain_lines:

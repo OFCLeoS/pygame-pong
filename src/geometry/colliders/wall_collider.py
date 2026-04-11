@@ -9,3 +9,4 @@ class WallCollider(BoxCollider):
 
     def on_collision(self, physics_object: ShapeGamePhysicsObject, collision_side: Vector2):
         physics_object.direction.y = -physics_object.direction.y
+        self._deactive(0.05)
