@@ -1,3 +1,4 @@
+import socket
 import math
 import random
 import pygame
@@ -217,9 +218,16 @@ def draw_game():
     pygame.draw.rect(screen, player2.colour, player2.rect_like)
 
 
+# NETWORKING
+host = input(" host -> ") 
+port = int(input(" port -> "))   # socket server port number
+server = (host,port)
+client_socket = socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)  
+message = input(" -> ")  # take input
+    
 while running:
 
-    # NETWORKING ARCHITECTURE HERE
+    # NETWORKING ARCHITECTURE
     # UDP
     # - Timestamped packages
     # Server-Client Structure
@@ -233,6 +241,14 @@ while running:
     # - Player ID
     # - Desired Movement Direction
     # Server stops receiving packets for x time -> timeout
+    
+    client_socket.sendto(message.encode(),server)  
+    data,addr = client_socket.recvfrom(1024)
+    data=data.decode()  # receive response
+    print('Received from server: ') 
+    print(data)  # show in terminal
+    message = input(" -> ")  # again take input
+    client_socket.close()  # close the connection
     ##############################
 
     # poll for events
