@@ -63,6 +63,7 @@ def draw_text(text, x, y):
     txt = text_font.render(text, True, SCORE_COLOUR)
     screen.blit(txt, (x, y))
 
+
 # Game Setup
 player_size = Vector2(PLAYER_WIDTH, PLAYER_HEIGHT)
 
@@ -84,24 +85,13 @@ player2_collider = PaddleCollider(Vector2(player2_starting_pos.x+(player_size.x/
 player2 = Rectangle(player_size, player2_starting_pos,
                     Color(255, 255, 255), player2_collider)
 
-# TODO: MOVEMENT CONSTRAINITS?
-# Player Controllers
-player_min_y_pos = WALL_THICKNESS
-player_max_y_pos = int(screen.get_height()-player_size.y - WALL_THICKNESS)
-
-player1_controller = ShapeController(
-    player1, {pygame.K_w: Vector2(0, -PLAYER_SPEED), pygame.K_s: Vector2(0, PLAYER_SPEED)},player_min_y_pos,player_max_y_pos)
-
-player2_controller = ShapeController(
-    player2, {pygame.K_UP: Vector2(0, -PLAYER_SPEED), pygame.K_DOWN: Vector2(0, PLAYER_SPEED)},player_min_y_pos,player_max_y_pos)
 
 # Ball Setup
-ball_starting_speed = Vector2(10, 3)
 ball_starting_pos = Vector2(screen.get_width()/2, screen.get_height() / 2)
 ball_collider = BallCollider(
     ball_starting_pos, Vector2(BALL_RADIUS, BALL_RADIUS))
 ball = ShapeGamePhysicsObject(Circle(BALL_RADIUS, ball_starting_pos, Color(
-    255, 255, 255), ball_collider), ball_starting_speed)
+    255, 255, 255), ball_collider), Vector2(0, 0))
 
 # Terrain Setup
 terrain_line_height = (screen.get_height() /
@@ -136,6 +126,7 @@ wall_bottom = Rectangle(top_bottom_wall_size, wall_bottom_pos,
 
 
 def on_goal(last_goal_id: int):
+    # TODO: MODIFY THIS FOR CLIENT
     global last_goal_player_id
     last_goal_player_id = last_goal_id
     ball.shape.set_position(ball_starting_pos)
@@ -190,8 +181,6 @@ physics_system = PhysicsSystem(
     [player1.collider, player2.collider, ball.shape.collider, wall_top_collider, wall_bottom_collider, goal_left_collider, goal_right_collider], [ball])
 
 
-last_goal_player_id = random.randint(1,2)
-pause_game()
 def draw_game():
     # Draw Terrain
     for line in terrain_lines:
@@ -218,13 +207,68 @@ def draw_game():
     pygame.draw.rect(screen, player2.colour, player2.rect_like)
 
 
+last_goal_player_id = random.randint(1, 2)
+pause_game()
+
 # NETWORKING
-host = input(" host -> ") 
-port = int(input(" port -> "))   # socket server port number
-server = (host,port)
-client_socket = socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)  
-message = input(" -> ")  # take input
+host = input(" host -> ")
+port = int(input(" port -> "))
+server = (host, port)
+
+client_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+# We send a Join Request (JR) to the Server
+message = "JR"
+client_socket.sendto(message.encode(), server)
+data, addr = client_socket.recvfrom(1024)
+data = data.decode()
+
+if data == "N":
+    print("Server is Full.")
+    quit()
+
+packet_number = 0
+# Player Controller
+player_min_y_pos = WALL_THICKNESS
+player_max_y_pos = int(screen.get_height()-player_size.y - WALL_THICKNESS)
+
+# We should have gotten an ID back at this point
+player = None
+player_id = 0
+if data == "1":
+    player_id = 1
+    player = player1
+else:
+    player_id = 2
+    player = player2
+
+player_controller = ShapeController(player, {pygame.K_w: Vector2(
+    0, -PLAYER_SPEED), pygame.K_s: Vector2(0, PLAYER_SPEED)}, player_min_y_pos, player_max_y_pos)
+
+
+def send_client_message():
+    global packet_number
+    player_position = player.get_position()  # type: ignore
+    message = f"{player_id}|({player_position.x},{player_position.y})|{packet_number}"
+    client_socket.sendto(message.encode(), server)
+
+    packet_number += 1
+    pass
+
+def process_server_message(message):
+     """
+        Processes the server message and acts accordingly:
+            - Sets the other player's position
+            - Updates the ball position if there is a big difference between the local and server position
+            - When a score change is detected -> recenter the game
+            - If the direction has been different for too long, change the direction as well as the ball position to the server's
+        Args:
+            The packet received by the server
+    """
     
+
+# We should NOT wait for packages for the game to look smooth
+client_socket.setblocking(False)
+
 while running:
 
     # NETWORKING ARCHITECTURE
@@ -241,16 +285,13 @@ while running:
     # - Player ID
     # - Desired Movement Direction
     # Server stops receiving packets for x time -> timeout
-    
-    client_socket.sendto(message.encode(),server)  
-    data,addr = client_socket.recvfrom(1024)
-    data=data.decode()  # receive response
-    print('Received from server: ') 
-    print(data)  # show in terminal
-    message = input(" -> ")  # again take input
-    client_socket.close()  # close the connection
     ##############################
 
+    server_message, _ = client_socket.recvfrom(1024)
+    # If we received a package during this tick, process it
+    if server_message:
+        process_server_message(server_message)
+    
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
     for event in pygame.event.get():
@@ -260,19 +301,16 @@ while running:
     # Fill the screen with the colour black, wipes everything from last frame away
     screen.fill("black")
     if is_paused:
-        time_since_pause += delta_time
-        if time_since_pause >= PAUSE_TIME:
-            time_since_pause = 0
-            start_game()
+        pass
 
     keys = pygame.key.get_pressed()
-    player1_controller.handle_movement(keys)
-    player2_controller.handle_movement(keys)
+    player_controller.handle_movement(keys)
 
     draw_game()
 
-    # TODO: Make middle just change y dir? and keep in mind player dir?
     physics_system.handle_physics()
+
+    send_client_message()
 
     # Update the contents of the entire display
     pygame.display.flip()
@@ -280,4 +318,5 @@ while running:
     # Limits FPS to 60
     delta_time = clock.tick(60) / 1000
 
+client_socket.close()
 pygame.quit()

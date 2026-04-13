@@ -4,18 +4,23 @@ port = int(input(" port -> "))
 server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 server_socket.bind((host, port))
 print("Server Started")
+
+num = 0
 while True:
     data, address = server_socket.recvfrom(1024)
-    data = data.decode('utf-8')
+    data = data.decode()
     if not data:
         break
-    print("Message from: " + str(address))
-    print("Received : ")
-    print(data)
-    data = data.upper()
-    print("Sending: ")
-    print(data)
-    server_socket.sendto(data.encode('utf-8'), address)
+    if num == 0:
+        print("Message from: " + str(address))
+        print("Received : ")
+        print(data)
+        if data == "JR":
+            data = "1"
+            print("Sending: ")
+            print(data)
+            server_socket.sendto(data.encode(), address)
+    num = (num+1)%100
 server_socket.close()
 
 # NETWORKING ARCHITECTURE
