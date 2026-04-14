@@ -317,6 +317,7 @@ while running:
     while True:
         try:
             server_message, _ = client_socket.recvfrom(1024)
+            latest_server_message = server_message
         except BlockingIOError:
             break
     # If we received a package during this tick, process it
