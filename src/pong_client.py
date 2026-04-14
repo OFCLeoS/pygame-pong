@@ -320,8 +320,8 @@ while running:
         except BlockingIOError:
             break
     # If we received a package during this tick, process it
-    latest_server_message = latest_server_message.decode()  # type: ignore
     if latest_server_message:
+        latest_server_message = latest_server_message.decode()  # type: ignore
         process_server_message(latest_server_message)
 
     # poll for events

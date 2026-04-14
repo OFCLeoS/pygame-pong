@@ -82,8 +82,8 @@ while True:
     while True:
         try:
             client_message, _ = server_socket.recvfrom(1024)
-            client_message = client_message.decode()
             if client_message:
+                client_message = client_message.decode()
                 if client_message[0] == "1":
                     latest_player1_message = client_message
                 else:
