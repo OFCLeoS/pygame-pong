@@ -75,13 +75,28 @@ while not player2_joined:
 server_socket.setblocking(False)
 
 while True:
-    try:
-        message, address = server_socket.recvfrom(1024)
-        message = message.decode()
-        if message:
-            process_client_message(message)
-    except BlockingIOError:
-        pass
+    
+    latest_player1_message = None
+    latest_player2_message = None
+    # We drain the buffer and get only the latest package
+    while True:
+        try:
+            client_message, _ = server_socket.recvfrom(1024)
+            client_message = client_message.decode()
+            if client_message:
+                if client_message[0] == "1":
+                    latest_player1_message = client_message
+                else:
+                    latest_player2_message = client_message
+        except BlockingIOError:
+            break
+        
+    # If we received a package during this tick, process it
+    if latest_player1_message:
+        process_client_message(latest_player1_message)
+    if latest_player2_message:
+        process_client_message(latest_player2_message)
+        
     
     game_state_message = get_game_state_message()
     game_state_message = game_state_message.encode()
