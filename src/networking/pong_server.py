@@ -1,48 +1,41 @@
 import socket
+import pygame
+
+
+
+
+
 host = input(" host -> ")
 port = int(input(" port -> "))
 server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 server_socket.bind((host, port))
 print("Server Started")
-
-player1_joined = False
-player2_joined = False
-num = 0
-
-player1_pos = "100,100"
-player2_pos = "100,100"
-
-player1_address = None
-player2_address = None
-
 while True:
+    
+    
     data, address = server_socket.recvfrom(1024)
-    data = data.decode()
+    client_message,address= server_socket.recvfrom(1024)
+    data = data.decode('utf-8')
+    client_message=str(client_message.decode("utf-8",))
     if not data:
         break
-    if not player1_joined:
-        if data == "JR":
-            data = "1"
-            print("Sending: ")
-            print(data)
-            player1_address = address
-            server_socket.sendto(data.encode(), address)
-        player1_joined = True
-    elif not player2_joined:
-        if data == "JR":
-            data = "2"
-            print("Sending: ")
-            print(data)
-            player2_address = address
-            server_socket.sendto(data.encode(), address)
-        player2_joined = True
-    else:
-        
-        if num == 0:
-            print("Message from: " + str(address))
-            print("Received : ")
-            print(data)
-    num = (num+1)%100
+    print("Message from: " + str(address))
+    print("Received : ")
+    print(data)
+    print(client_message)
+    data = data.upper()
+    client_message_list = client_message.split("|")
+    print(client_message_list)
+    server_message = str(ball_position) +"|"+str(ball_direction)+"|"+str(player_position)+"|"+str(player_position2)+"|"+str(score)
+    
+    print("Sending: ")
+    print(data)
+    print(server_message)
+    server_socket.sendto(data.encode('utf-8'), address)
+    server_socket.sendto(server_message.encode('utf-8'),address)
+    
+    
+    
 server_socket.close()
 
 # NETWORKING ARCHITECTURE
@@ -59,3 +52,6 @@ server_socket.close()
 # - Player ID
 # - Desired Movement Direction
 # Server stops receiving packets for x time -> timeout
+pygame.init()
+screen = pygame.display.set_mode((1500, 900))
+screen.fill("black")
