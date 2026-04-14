@@ -248,7 +248,7 @@ player_controller = ShapeController(player, {pygame.K_w: Vector2(
 def send_client_message():
     global packet_number
     player_position = player.get_position()  # type: ignore
-    message = f"{player_id}|({player_position.x},{player_position.y})|{packet_number}"
+    message = f"{player_id}|{player_position.x},{player_position.y}|{packet_number}"
     client_socket.sendto(message.encode(), server)
 
     packet_number += 1
@@ -265,7 +265,7 @@ def process_server_message(message):
             The packet received by the server
     """
     
-    # Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE
+    # Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE|PACKET_NUM
     message_values = message.split("|")
     
     ball_position_values = message_values[0].split(",")
@@ -283,7 +283,7 @@ def process_server_message(message):
         player1_pos = Vector2(float(player1_pos_values[0]),float(player1_pos_values[1]))
         player1.set_position(player1_pos)
     
-    # TODO: HANDLE SCORE
+    # TODO: HANDLE SCORE AND PACKET_NUM
 
 # We should NOT wait for packages for the game to look smooth
 client_socket.setblocking(False)
@@ -306,11 +306,15 @@ while running:
     # Server stops receiving packets for x time -> timeout
     ##############################
 
-    server_message, _ = client_socket.recvfrom(1024)
-    print(server_message)
-    # If we received a package during this tick, process it
-    if server_message:
-        process_server_message(server_message)
+    try:
+        server_message, _ = client_socket.recvfrom(1024)
+        server_message = server_message.decode()
+        print(server_message)
+        # If we received a package during this tick, process it
+        if server_message:
+            process_server_message(server_message)
+    except BlockingIOError:
+        pass
     
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
