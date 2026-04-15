@@ -80,152 +80,156 @@ physics_system = PhysicsSystem(
     ],
     [ball])
 
-
 client_socket = Socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-################
-# GAME START
-################
+def handle_join_phase():
+    global joined_game, server, packet_number, player, player_id, player_controller
 
-################
-# JOINING PHASE
-################
-server = None
-joined_game = False
-while not joined_game:
-    # We ask the User for the server Address
-    host = input(" host -> ")
-    try:
-        port = int(input(" port -> "))
-    except ValueError:
-        print("Invalid port was provided")
-        continue
-    
-    server = (host, port)
+    client_socket.setblocking(True)
+    server = None
+    while not joined_game:
+        # We ask the User for the server Address
+        host = input(" Server IP (or \"q\" to quit) -> ")
+        if host == "q":
+            print("Quitting...")
+            client_socket.close()
+            quit()
+        try:
+            port = int(input(" Port -> "))
+            server = (host, port)
+        except ValueError:
+            print("Invalid port was provided")
+            continue
 
-    # We send a Join Request (J) to the Server
-    message = "J"
-    client_socket.sendto(message.encode(), server)
-    try:
-        data, addr = client_socket.recvfrom(1024)
-        data = data.decode()
-    except ConnectionResetError:
-        print("ConnectionResetError (Server was probably not found)")
-        continue
+        # We send a Join Request (J) to the Server
+        message = "J"
+        client_socket.sendto(message.encode(), server)
+        try:
+            data, _ = client_socket.recvfrom(1024)
+            data = data.decode()
+        except ConnectionResetError:
+            print("ConnectionResetError (Server was probably not found)")
+            continue
 
-    # If the game is
-    if data == "N":
-        print("This Server is Full.")
+        # If the game is
+        if data == "N":
+            print("This Server is Full.")
+        else:
+            joined_game = True
+
+    packet_number = 0
+
+    # We should have gotten an ID back at this point
+    player_id = 0
+    if data == "1":
+        player_id = 1
+        player = player1
     else:
-        joined_game = True
+        player_id = 2
+        player = player2
 
-packet_number = 0
+    player_controller = ShapeController(
+        player,
+        {
+            pygame.K_w: Vector2(0, -game_settings.PLAYER_SPEED),
+            pygame.K_s: Vector2(0, game_settings.PLAYER_SPEED)
+        },
+        game_settings.PLAYER_MIN_Y_POS,
+        game_settings.PLAYER_MAX_Y_POS)
 
-# We should have gotten an ID back at this point
-player = None
-player_id = 0
-if data == "1":
-    player_id = 1
-    player = player1
-else:
-    player_id = 2
-    player = player2
-
-player_controller = ShapeController(
-    player,
-    {
-        pygame.K_w: Vector2(0, -game_settings.PLAYER_SPEED),
-        pygame.K_s: Vector2(0, game_settings.PLAYER_SPEED)
-    },
-    game_settings.PLAYER_MIN_Y_POS,
-    game_settings.PLAYER_MAX_Y_POS)
-
-
-# We should NOT wait for packages for the game to look smooth
-client_socket.setblocking(False)
-
-# pygame setup
-pygame.init()
-text_font = pygame.font.SysFont("Courier New", game_settings.SCORE_SIZE)
-screen = pygame.display.set_mode(
-    (game_settings.SCREEN_WIDTH,
-     game_settings.SCREEN_HEIGHT))
-clock = pygame.time.Clock()
-running = True
-delta_time = 0
-
-is_paused = False
-time_since_pause = 0
+    # We should NOT wait for packages for the game to look smooth
+    client_socket.setblocking(False)
+    # pygame setup
+    global text_font, screen, clock, running, delta_time
+    pygame.init()
+    text_font = pygame.font.SysFont("Courier New", game_settings.SCORE_SIZE)
+    screen = pygame.display.set_mode(
+        (game_settings.SCREEN_WIDTH,
+         game_settings.SCREEN_HEIGHT))
+    clock = pygame.time.Clock()
+    delta_time = 0
 
 
 #############
 # GAME PHASE
 #############
+joined_game = False
+server = None
+running = True
 latest_server_message = None
 while running:
-    # We drain the buffer and get only the latest package
-    while True:
-        try:
-            server_message, _ = client_socket.recvfrom(1024)
-            latest_server_message = server_message
-        except BlockingIOError:
-            break
-    # If we received a package during this tick, process it
-    if latest_server_message:
-        latest_server_message = latest_server_message.decode()  # type: ignore
-        process_server_message(
-            latest_server_message,
-            player_id,
+    if not joined_game:
+        handle_join_phase()
+    # Main Game Loop
+    else:
+        # We drain the buffer and get only the latest package
+        while True:
+            try:
+                server_message, _ = client_socket.recvfrom(1024)
+                latest_server_message = server_message
+            except BlockingIOError:
+                break
+        # If we received a package during this tick, process it
+        if latest_server_message:
+            latest_server_message = latest_server_message.decode()  # type: ignore
+            process_server_message(
+                latest_server_message,
+                player_id,
+                player1,
+                player2)
+
+        # poll for events
+        # pygame.QUIT event means the user clicked X to close your window
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        # Fill the screen with the colour black, wipes everything from last frame away
+        screen.fill("black")
+
+        keys = pygame.key.get_pressed()
+        player_controller.handle_movement(keys)
+
+        if keys[pygame.K_q]:
+            if keys[pygame.K_LCTRL]:
+                running = False
+            joined_game = False
+            pygame.quit()
+            continue
+
+        draw_game(
+            screen,
             player1,
-            player2)
+            player2,
+            ball,
+            terrain_lines,
+            wall_top,
+            wall_bottom,
+            goal_left,
+            goal_right,
+            0, 0,  # TODO: SCORE
+            text_font)
 
-    # poll for events
-    # pygame.QUIT event means the user clicked X to close your window
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+        physics_system.handle_physics()
 
-    # Fill the screen with the colour black, wipes everything from last frame away
-    screen.fill("black")
-    if is_paused:
-        pass
+        player_position = player.get_position()  # type: ignore
+        send_client_message(
+            client_socket,
+            server,
+            player_id,
+            player_position.x,
+            player_position.y,
+            packet_number)
+        packet_number += 1
 
-    keys = pygame.key.get_pressed()
-    player_controller.handle_movement(keys)
+        # Update the contents of the entire display
+        pygame.display.flip()
 
-    draw_game(
-        screen,
-        player1,
-        player2,
-        ball,
-        terrain_lines,
-        wall_top,
-        wall_bottom,
-        goal_left,
-        goal_right,
-        0, 0,  # TODO: SCORE
-        text_font)
+        # Limits FPS to 60
+        delta_time = clock.tick(60) / 1000
 
-    physics_system.handle_physics()
-
-    player_position = player.get_position()
-    send_client_message(
-        client_socket,
-        server,
-        player_id,
-        player_position.x,
-        player_position.y,
-        packet_number)
-    packet_number += 1
-
-    # Update the contents of the entire display
-    pygame.display.flip()
-
-    # Limits FPS to 60
-    delta_time = clock.tick(60) / 1000
-
-client_socket.close()
 pygame.quit()
+client_socket.close()
 
 # NETWORKING ARCHITECTURE
 # UDP
