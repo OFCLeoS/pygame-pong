@@ -98,11 +98,10 @@ while not joined_game:
     host = input(" host -> ")
     try:
         port = int(input(" port -> "))
+        server = (host, port)
     except ValueError:
         print("Invalid port was provided")
         continue
-    
-    server = (host, port)
 
     # We send a Join Request (J) to the Server
     join_request = "J"
@@ -163,19 +162,19 @@ time_since_last_packet = 0
 latest_server_message_values: list[str] = []
 while running:
     time_since_last_packet += delta_time
-    
+
     # We drain the buffer and get only the latest package
     while True:
         try:
             server_message, _ = client_socket.recvfrom(1024)
             message_values = server_message.decode().split("|")
-            
+
             # Index 5 is packet num
             if message_values[5] > latest_server_message_values[5]:
                 latest_server_message_values = message_values
         except BlockingIOError:
             break
-        
+
     # If we received a package during this tick, process it
     if latest_server_message_values:
         time_since_last_packet = 0
