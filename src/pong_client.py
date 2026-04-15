@@ -10,8 +10,9 @@ from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
 from tools.game_tools import draw_game
-from tools.networking_tools import process_server_message, send_client_message
+from tools.networking_tools import handle_server_connection_lost, process_server_message, send_client_message
 from values import game_settings
+from values import networking_settings
 
 
 player1 = game_tools.create_player_1()
@@ -84,7 +85,8 @@ client_socket = Socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
 def handle_join_phase():
     global joined_game, server, packet_number, player, player_id, player_controller
-
+    joined_game = False
+    
     client_socket.setblocking(True)
     server = None
     while not joined_game:
@@ -139,44 +141,53 @@ def handle_join_phase():
 
     # We should NOT wait for packages for the game to look smooth
     client_socket.setblocking(False)
-    # pygame setup
-    global text_font, screen, clock, running, delta_time
+    # Game Setup
+    global text_font, screen, clock, running, delta_time, latest_server_message_values, time_since_last_packet
     pygame.init()
     text_font = pygame.font.SysFont("Courier New", game_settings.SCORE_SIZE)
     screen = pygame.display.set_mode(
         (game_settings.SCREEN_WIDTH,
          game_settings.SCREEN_HEIGHT))
     clock = pygame.time.Clock()
-    delta_time = 0
-
+    delta_time: float = 0
+    
+    latest_server_message_values: list[str] = []
+    time_since_last_packet: float = 0
+    running = True
+    
 
 #############
 # GAME PHASE
 #############
-joined_game = False
-server = None
-running = True
-latest_server_message = None
+handle_join_phase() # Just to be 100% sure this runs atleast onece
 while running:
     if not joined_game:
         handle_join_phase()
     # Main Game Loop
     else:
+        time_since_last_packet += delta_time # type: ignore
         # We drain the buffer and get only the latest package
         while True:
             try:
                 server_message, _ = client_socket.recvfrom(1024)
-                latest_server_message = server_message
+                message_values = server_message.decode().split("|")
+
+                # Index 5 is packet num
+                if message_values[5] > latest_server_message_values[5]:
+                    latest_server_message_values = message_values
             except BlockingIOError:
                 break
+
         # If we received a package during this tick, process it
-        if latest_server_message:
-            latest_server_message = latest_server_message.decode()  # type: ignore
+        if latest_server_message_values:
+            time_since_last_packet = 0
             process_server_message(
-                latest_server_message,
+                latest_server_message_values,
                 player_id,
                 player1,
                 player2)
+        elif time_since_last_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_ACTION:
+            handle_server_connection_lost()
 
         # poll for events
         # pygame.QUIT event means the user clicked X to close your window
