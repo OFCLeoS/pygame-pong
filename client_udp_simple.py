@@ -1,21 +1,6 @@
 import socket
 
 
-screen.fill("black")
-if is_paused:
-    time_since_pause += delta_time
-    if time_since_pause >= PAUSE_TIME:
-        time_since_pause = 0
-        start_game()
-
-keys = pygame.key.get_pressed()
-player1_controller.handle_movement(keys)
-player2_controller.handle_movement(keys)
-
-draw_game()
-
-    
-physics_system.handle_physics()
 
 
 
