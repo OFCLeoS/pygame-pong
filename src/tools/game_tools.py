@@ -1,4 +1,5 @@
 from pygame import Color, Font, Rect, Surface, Vector2
+import pygame
 
 from geometry.circle import Circle
 from geometry.colliders.ball_collider import BallCollider
@@ -12,7 +13,7 @@ from logic.shape_game_physics_object import ShapeGamePhysicsObject
 from values import game_settings
 
 
-def draw_text(screen: Surface, text, text_font: Font, x, y):
+def draw_text(screen: Surface, text: str, text_font: Font, x, y):
     txt = text_font.render(text, True, game_settings.SCORE_COLOUR)
     screen.blit(txt, (x, y))
 
@@ -144,3 +145,52 @@ def VISUAL_create_terrain_lines() -> list[Rect]:
                  Vector2(game_settings.TERRAIN_LINE_WIDTH,
                          terrain_line_height)))
     return terrain_lines
+
+
+def draw_game(screen: Surface,
+              player1: Rectangle,
+              player2: Rectangle,
+              ball: ShapeGamePhysicsObject,
+              terrain_lines: list[Rect],
+              wall_top: Rectangle,
+              wall_bottom: Rectangle,
+              goal_left: Rectangle,
+              goal_right: Rectangle,
+              player1_score: int,
+              player2_score: int,
+              text_font: Font):
+    # Draw Terrain
+    for line in terrain_lines:
+        pygame.draw.rect(screen, game_settings.TERRAIN_COLOUR, line)
+    # Draw Score
+
+    draw_text(
+        screen,
+        str(player1_score),
+        text_font, screen.get_width()/3.9,
+        screen.get_height()/15)
+
+    draw_text(
+        screen,
+        str(player1_score),
+        text_font,
+        (screen.get_width()-(text_font.size(str(player1_score))
+         [0])) - (screen.get_width()/3.9),
+        screen.get_height()/15)
+
+    # Draw Walls
+    pygame.draw.rect(screen, wall_top.colour, wall_top.rect_like)
+    pygame.draw.rect(screen, wall_bottom.colour, wall_bottom.rect_like)
+    # Draw Goals
+    pygame.draw.rect(screen, goal_left.colour, goal_left.rect_like)
+    pygame.draw.rect(screen, goal_right.colour, goal_right.rect_like)
+    # Draw Ball
+    pygame.draw.circle(
+        screen,
+        ball.shape.colour,
+        ball.shape.get_position(),
+        ball.shape.collider.extents.x)
+
+    # Draw Players
+    pygame.draw.rect(screen, player1.colour, player1.rect_like)
+    pygame.draw.rect(screen, player2.colour, player2.rect_like)

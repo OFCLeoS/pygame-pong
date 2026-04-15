@@ -56,7 +56,7 @@ while not player2_joined:
     if not message:
         break
     if not player1_joined:
-        if message == "JR":
+        if message == "J":
             message = "1"
             print("Sending: ")
             print(message)
@@ -64,7 +64,7 @@ while not player2_joined:
             server_socket.sendto(message.encode(), address)
             player1_joined = True
     elif not player2_joined:
-        if message == "JR":
+        if message == "J":
             message = "2"
             print("Sending: ")
             print(message)
@@ -75,33 +75,36 @@ while not player2_joined:
 server_socket.setblocking(False)
 
 while True:
-    
+
     latest_player1_message = None
     latest_player2_message = None
     # We drain the buffer and get only the latest package
     while True:
         try:
-            client_message, _ = server_socket.recvfrom(1024)
+            client_message, address = server_socket.recvfrom(1024)
             if client_message:
                 client_message = client_message.decode()
                 if client_message[0] == "1":
                     latest_player1_message = client_message
-                else:
+                elif client_message[0] == "2":
                     latest_player2_message = client_message
+                elif client_message[0] == "J":
+                    refuse_entry_message = "N"
+                    server_socket.sendto(refuse_entry_message.encode(), address)
+
         except BlockingIOError:
             break
-        
+
     # If we received a package during this tick, process it
     if latest_player1_message:
         process_client_message(latest_player1_message)
     if latest_player2_message:
         process_client_message(latest_player2_message)
-        
-    
+
     game_state_message = get_game_state_message()
     game_state_message = game_state_message.encode()
-    server_socket.sendto(game_state_message,player1_address) # type: ignore
-    server_socket.sendto(game_state_message,player2_address) # type: ignore
+    server_socket.sendto(game_state_message, player1_address)  # type: ignore
+    server_socket.sendto(game_state_message, player2_address)  # type: ignore
     if num == 0:
         print("Message from: " + str(address))
         print("Received : ")
