@@ -1,137 +1,39 @@
 import socket
-import math
+from socket import socket as Socket
 import random
 import pygame
-from pygame import Rect, Vector2
-from pygame import Color
-
-from geometry.circle import Circle
-from geometry.colliders.ball_collider import BallCollider
-from geometry.colliders.goal_collider import GoalCollider
-from geometry.colliders.paddle_collider import PaddleCollider
-from geometry.colliders.wall_collider import WallCollider
-from geometry.rectangle import Rectangle
+from pygame import Vector2
 
 from logic.goal_manager import GoalManager
 from logic.shape_controller import ShapeController
 from logic.physics_system import PhysicsSystem
-from logic.shape_game_physics_object import ShapeGamePhysicsObject
 
-##################
-# GAME SETTINGS
-##################
-BALL_RADIUS = 15
-BALL_STARTING_X_SPEED = 10
-BALL_STARTING_Y_SPEED = 20
-
-PLAYER1_ID = 1
-PLAYER2_ID = 2
-PLAYER_WIDTH = 30
-PLAYER_HEIGHT = 200
-PLAYER_SPEED = 20
-
-TERRAIN_LINE_WIDTH = 9
-TERRAIN_LINE_COUNT = 10
-TERRAIN_SPACE_BETWEEM_LINES = 20
-TERRAIN_COLOUR = Color(155, 155, 155)
-
-WALL_THICKNESS = 15
-WALL_COLOUR = Color(100, 100, 100)
-
-SCORE_SIZE = 200
-SCORE_COLOUR = Color(255, 255, 255)
-
-PAUSE_TIME = 1.5
-##################
-#
-##################
-
-# pygame setup
-pygame.init()
-text_font = pygame.font.SysFont("Courier New", SCORE_SIZE)
-screen = pygame.display.set_mode((1500, 900))
-clock = pygame.time.Clock()
-running = True
-delta_time = 0
-
-is_paused = False
-time_since_pause = 0
-last_goal_player_id = 0
+from tools import game_tools
+from tools.game_tools import draw_game
+from tools.networking_tools import process_server_message, send_client_message
+from values import game_settings
 
 
-def draw_text(text, x, y):
-    txt = text_font.render(text, True, SCORE_COLOUR)
-    screen.blit(txt, (x, y))
+player1 = game_tools.create_player_1()
 
+player2 = game_tools.create_player_2()
 
-# Game Setup
-player_size = Vector2(PLAYER_WIDTH, PLAYER_HEIGHT)
+ball = game_tools.create_ball()
 
-# Player 1 Setup
-player1_starting_pos = Vector2(
-    screen.get_width() / 15, (screen.get_height() / 2)-(PLAYER_HEIGHT/2))
-player1_collider = PaddleCollider(Vector2(player1_starting_pos.x+(player_size.x/2),
-                                  player1_starting_pos.y+(player_size.y/2)), Vector2(player_size.x/2, player_size.y/2))
-
-player1 = Rectangle(player_size, player1_starting_pos,
-                    Color(255, 255, 255), player1_collider)
-
-# Player 2 Setup
-player2_starting_pos = Vector2(screen.get_width(
-)-(screen.get_width() / 15)-PLAYER_WIDTH, (screen.get_height() / 2)-(PLAYER_HEIGHT/2))
-player2_collider = PaddleCollider(Vector2(player2_starting_pos.x+(player_size.x/2),
-                                  player2_starting_pos.y+(player_size.y/2)), Vector2(player_size.x/2, player_size.y/2))
-
-player2 = Rectangle(player_size, player2_starting_pos,
-                    Color(255, 255, 255), player2_collider)
-
-
-# Ball Setup
-ball_starting_pos = Vector2(screen.get_width()/2, screen.get_height() / 2)
-ball_collider = BallCollider(
-    ball_starting_pos, Vector2(BALL_RADIUS, BALL_RADIUS))
-ball = ShapeGamePhysicsObject(Circle(BALL_RADIUS, ball_starting_pos, Color(
-    255, 255, 255), ball_collider), Vector2(0, 0))
-
-# Terrain Setup
-terrain_line_height = (screen.get_height() /
-                       TERRAIN_LINE_COUNT)-TERRAIN_SPACE_BETWEEM_LINES
-terrain_lines: list[Rect] = list()
-for i in range(TERRAIN_LINE_COUNT+1):
-    terrain_lines.append(
-        Rect(Vector2((screen.get_width()/2)-(TERRAIN_LINE_WIDTH/2),
-                     ((terrain_line_height+TERRAIN_SPACE_BETWEEM_LINES) * i)+(TERRAIN_SPACE_BETWEEM_LINES/2)),
-             Vector2(TERRAIN_LINE_WIDTH,
-                     terrain_line_height)))
+terrain_lines = game_tools.VISUAL_create_terrain_lines()
 
 # Walls Setup
-top_bottom_wall_size = Vector2(screen.get_width(), WALL_THICKNESS)
-wall_top_pos = Vector2(0, 0)
-wall_top_collider = WallCollider(Vector2(screen.get_width()/2,
-                                         WALL_THICKNESS/2),
-                                 Vector2(top_bottom_wall_size.x/2,
-                                         top_bottom_wall_size.y/2))
-
-wall_top = Rectangle(top_bottom_wall_size, wall_top_pos,
-                     WALL_COLOUR, wall_top_collider)
-
-wall_bottom_pos = Vector2(0, screen.get_height()-WALL_THICKNESS)
-wall_bottom_collider = WallCollider(Vector2(screen.get_width()/2,
-                                            wall_bottom_pos.y+(WALL_THICKNESS/2)),
-                                    Vector2(top_bottom_wall_size.x/2,
-                                            top_bottom_wall_size.y/2))
-
-wall_bottom = Rectangle(top_bottom_wall_size, wall_bottom_pos,
-                        WALL_COLOUR, wall_bottom_collider)
+wall_top = game_tools.create_top_wall()
+wall_bottom = game_tools.create_bottom_wall()
 
 
 def on_goal(last_goal_id: int):
     # TODO: MODIFY THIS FOR CLIENT
     global last_goal_player_id
     last_goal_player_id = last_goal_id
-    ball.shape.set_position(ball_starting_pos)
-    player1.set_position(player1_starting_pos)
-    player2.set_position(player2_starting_pos)
+    ball.shape.set_position(game_settings.BALL_STARTING_POS)
+    player1.set_position(game_settings.PLAYER1_STARTING_POS)
+    player2.set_position(game_settings.PLAYER2_STARTING_POS)
     pause_game()
 
 
@@ -146,90 +48,78 @@ def start_game():
     global is_paused
     is_paused = False
     coefficient = random.uniform(-1, 1)
-    ball.direction.x = BALL_STARTING_X_SPEED if last_goal_player_id % 2 != 0 else - \
-        BALL_STARTING_X_SPEED
-    ball.direction.y = BALL_STARTING_Y_SPEED * coefficient
+    ball.direction.x = game_settings.BALL_STARTING_X_SPEED if last_goal_player_id % 2 != 0 else - \
+        game_settings.BALL_STARTING_X_SPEED
+    ball.direction.y = game_settings.BALL_STARTING_Y_SPEED * coefficient
+
+
+def recenter_game():
+    ball.shape.set_position(game_settings.BALL_STARTING_POS)
+    player1.set_position(game_settings.PLAYER1_STARTING_POS)
+    player2.set_position(game_settings.PLAYER2_STARTING_POS)
 
 
 # Goals Setup
-goal_manager = GoalManager([PLAYER1_ID, PLAYER2_ID], on_goal)
+goal_manager = GoalManager(
+    [game_settings.PLAYER1_ID, game_settings.PLAYER2_ID],
+    on_goal)
 
-left_right_goal_size = Vector2(WALL_THICKNESS, screen.get_height())
-goal_left_pos = Vector2(0, 0)
-goal_left_collider = GoalCollider(Vector2(WALL_THICKNESS/2,
-                                          screen.get_height()/2),
-                                  Vector2(left_right_goal_size.x/2,
-                                          left_right_goal_size.y/2),
-                                  PLAYER2_ID,
-                                  goal_manager)
+goal_left = game_tools.create_left_goal(goal_manager)
+goal_right = game_tools.create_right_goal(goal_manager)
 
-goal_left = Rectangle(left_right_goal_size, goal_left_pos,
-                      WALL_COLOUR, goal_left_collider)
-
-goal_right_pos = Vector2(screen.get_width()-WALL_THICKNESS, 0)
-goal_right_collider = GoalCollider(Vector2(goal_right_pos.x+(WALL_THICKNESS/2),
-                                           screen.get_height()/2),
-                                   Vector2(left_right_goal_size.x/2,
-                                           left_right_goal_size.y/2),
-                                   PLAYER1_ID,
-                                   goal_manager)
-
-goal_right = Rectangle(left_right_goal_size, goal_right_pos,
-                       WALL_COLOUR, goal_right_collider)
 # PHYSICS SYSTEM
 physics_system = PhysicsSystem(
-    [player1.collider, player2.collider, ball.shape.collider, wall_top_collider, wall_bottom_collider, goal_left_collider, goal_right_collider], [ball])
+    [
+        player1.collider,
+        player2.collider,
+        ball.shape.collider,
+        wall_top.collider,
+        wall_bottom.collider,
+        goal_left.collider,
+        goal_right.collider
+    ],
+    [ball])
 
 
-def draw_game():
-    # Draw Terrain
-    for line in terrain_lines:
-        pygame.draw.rect(screen, TERRAIN_COLOUR, line)
-    # Draw Score
-    player1_score = str(goal_manager.get_player_score(PLAYER1_ID))
-    player2_score = str(goal_manager.get_player_score(PLAYER2_ID))
+client_socket = Socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-    draw_text(player1_score, screen.get_width()/3.9, screen.get_height()/15)
-    draw_text(player2_score, (screen.get_width()-(text_font.size(player2_score)[0])) -
-              (screen.get_width()/3.9), screen.get_height()/15)
+################
+# GAME START
+################
 
-    # Draw Walls
-    pygame.draw.rect(screen, wall_top.colour, wall_top.rect_like)
-    pygame.draw.rect(screen, wall_bottom.colour, wall_bottom.rect_like)
-    # Draw Goals
-    pygame.draw.rect(screen, goal_left.colour, goal_left.rect_like)
-    pygame.draw.rect(screen, goal_right.colour, goal_right.rect_like)
-    # Draw Ball
-    pygame.draw.circle(screen, ball.shape.colour,
-                       ball.shape.get_position(), ball.shape.collider.extents.x)
-    # Draw Players
-    pygame.draw.rect(screen, player1.colour, player1.rect_like)
-    pygame.draw.rect(screen, player2.colour, player2.rect_like)
+################
+# JOINING PHASE
+################
+server = None
+joined_game = False
+while not joined_game:
+    # We ask the User for the server Address
+    host = input(" host -> ")
+    try:
+        port = int(input(" port -> "))
+    except ValueError:
+        print("Invalid port was provided")
+        continue
+    
+    server = (host, port)
 
+    # We send a Join Request (J) to the Server
+    message = "J"
+    client_socket.sendto(message.encode(), server)
+    try:
+        data, addr = client_socket.recvfrom(1024)
+        data = data.decode()
+    except ConnectionResetError:
+        print("ConnectionResetError (Server was probably not found)")
+        continue
 
-last_goal_player_id = random.randint(1, 2)
-pause_game()
-
-# NETWORKING
-host = input(" host -> ")
-port = int(input(" port -> "))
-server = (host, port)
-
-client_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-# We send a Join Request (JR) to the Server
-message = "JR"
-client_socket.sendto(message.encode(), server)
-data, addr = client_socket.recvfrom(1024)
-data = data.decode()
-
-if data == "N":
-    print("Server is Full.")
-    quit()
+    # If the game is
+    if data == "N":
+        print("This Server is Full.")
+    else:
+        joined_game = True
 
 packet_number = 0
-# Player Controller
-player_min_y_pos = WALL_THICKNESS
-player_max_y_pos = int(screen.get_height()-player_size.y - WALL_THICKNESS)
 
 # We should have gotten an ID back at this point
 player = None
@@ -241,77 +131,54 @@ else:
     player_id = 2
     player = player2
 
-player_controller = ShapeController(player, {pygame.K_w: Vector2(
-    0, -PLAYER_SPEED), pygame.K_s: Vector2(0, PLAYER_SPEED)}, player_min_y_pos, player_max_y_pos)
+player_controller = ShapeController(
+    player,
+    {
+        pygame.K_w: Vector2(0, -game_settings.PLAYER_SPEED),
+        pygame.K_s: Vector2(0, game_settings.PLAYER_SPEED)
+    },
+    game_settings.PLAYER_MIN_Y_POS,
+    game_settings.PLAYER_MAX_Y_POS)
 
-
-def send_client_message():
-    global packet_number
-    player_position = player.get_position()  # type: ignore
-    message = f"{player_id}|({player_position.x},{player_position.y})|{packet_number}"
-    client_socket.sendto(message.encode(), server)
-
-    packet_number += 1
-    pass
-
-def process_server_message(message):
-    """
-        Processes the server message and acts accordingly:
-            - Sets the other player's position
-            - Updates the ball position if there is a big difference between the local and server position
-            - When a score change is detected -> recenter the game
-            - If the direction has been different for too long, change the direction as well as the ball position to the server's
-        Args:
-            The packet received by the server
-    """
-    
-    # Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE
-    message_values = message.split("|")
-    
-    ball_position_values = message_values[0].split(",")
-    ball_position = Vector2(float(ball_position_values[0]),float(ball_position_values[1]))
-    
-    ball_direction_values = message_values[1].split(",")
-    ball_direction = Vector2(float(ball_direction_values[0]),float(ball_direction_values[1]))
-    
-    if player_id == 1:
-        player2_pos_values = message_values[3].split(",")
-        player2_pos = Vector2(float(player2_pos_values[0]),float(player2_pos_values[1]))
-        player2.set_position(player2_pos)
-    else:
-        player1_pos_values = message_values[2].split(",")
-        player1_pos = Vector2(float(player1_pos_values[0]),float(player1_pos_values[1]))
-        player1.set_position(player1_pos)
-    
-    # TODO: HANDLE SCORE
 
 # We should NOT wait for packages for the game to look smooth
 client_socket.setblocking(False)
 
+# pygame setup
+pygame.init()
+text_font = pygame.font.SysFont("Courier New", game_settings.SCORE_SIZE)
+screen = pygame.display.set_mode(
+    (game_settings.SCREEN_WIDTH,
+     game_settings.SCREEN_HEIGHT))
+clock = pygame.time.Clock()
+running = True
+delta_time = 0
+
+is_paused = False
+time_since_pause = 0
+
+
+#############
+# GAME PHASE
+#############
+latest_server_message = None
 while running:
-
-    # NETWORKING ARCHITECTURE
-    # UDP
-    # - Timestamped packages
-    # Server-Client Structure
-    # - One player's machine is the Structure
-    # Server sends players
-    # - Ball Position -> THIS SHOULD BE CALCULATED IN THE CLIENT?
-    # - Ball Direction
-    # - Player Position
-    # - Score
-    # Players send to Server
-    # - Player ID
-    # - Desired Movement Direction
-    # Server stops receiving packets for x time -> timeout
-    ##############################
-
-    server_message, _ = client_socket.recvfrom(1024)
-    print(server_message)
+    # We drain the buffer and get only the latest package
+    while True:
+        try:
+            server_message, _ = client_socket.recvfrom(1024)
+            latest_server_message = server_message
+        except BlockingIOError:
+            break
     # If we received a package during this tick, process it
-    if server_message:
-        process_server_message(server_message)
-    
+    if latest_server_message:
+        latest_server_message = latest_server_message.decode()  # type: ignore
+        process_server_message(
+            latest_server_message,
+            player_id,
+            player1,
+            player2)
+
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
     for event in pygame.event.get():
@@ -326,11 +193,30 @@ while running:
     keys = pygame.key.get_pressed()
     player_controller.handle_movement(keys)
 
-    draw_game()
+    draw_game(
+        screen,
+        player1,
+        player2,
+        ball,
+        terrain_lines,
+        wall_top,
+        wall_bottom,
+        goal_left,
+        goal_right,
+        0, 0,  # TODO: SCORE
+        text_font)
 
     physics_system.handle_physics()
 
-    send_client_message()
+    player_position = player.get_position()
+    send_client_message(
+        client_socket,
+        server,
+        player_id,
+        player_position.x,
+        player_position.y,
+        packet_number)
+    packet_number += 1
 
     # Update the contents of the entire display
     pygame.display.flip()
@@ -340,3 +226,19 @@ while running:
 
 client_socket.close()
 pygame.quit()
+
+# NETWORKING ARCHITECTURE
+# UDP
+# - Timestamped packages
+# Server-Client Structure
+# - One player's machine is the Structure
+# Server sends players
+# - Ball Position -> THIS SHOULD BE CALCULATED IN THE CLIENT?
+# - Ball Direction
+# - Player Position
+# - Score
+# Players send to Server
+# - Player ID
+# - Desired Movement Direction
+# Server stops receiving packets for x time -> timeout
+##############################
