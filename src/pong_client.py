@@ -1,21 +1,12 @@
 import socket
 from socket import socket as Socket
-import math
 import random
 import pygame
-from pygame import Rect, Vector2, Color
-
-from geometry.circle import Circle
-from geometry.colliders.ball_collider import BallCollider
-from geometry.colliders.goal_collider import GoalCollider
-from geometry.colliders.paddle_collider import PaddleCollider
-from geometry.colliders.wall_collider import WallCollider
-from geometry.rectangle import Rectangle
+from pygame import Vector2
 
 from logic.goal_manager import GoalManager
 from logic.shape_controller import ShapeController
 from logic.physics_system import PhysicsSystem
-from logic.shape_game_physics_object import ShapeGamePhysicsObject
 
 from tools import game_tools
 from tools.game_tools import draw_game
