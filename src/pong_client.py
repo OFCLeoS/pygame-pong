@@ -10,8 +10,9 @@ from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
 from tools.game_tools import draw_game
-from tools.networking_tools import process_server_message, send_client_message
+from tools.networking_tools import handle_server_connection_lost, process_server_message, send_client_message
 from values import game_settings
+from values import networking_settings
 
 
 player1 = game_tools.create_player_1()
@@ -104,8 +105,8 @@ while not joined_game:
     server = (host, port)
 
     # We send a Join Request (J) to the Server
-    message = "J"
-    client_socket.sendto(message.encode(), server)
+    join_request = "J"
+    client_socket.sendto(join_request.encode(), server)
     try:
         data, addr = client_socket.recvfrom(1024)
         data = data.decode()
@@ -154,30 +155,37 @@ clock = pygame.time.Clock()
 running = True
 delta_time = 0
 
-is_paused = False
-time_since_pause = 0
-
+time_since_last_packet = 0
 
 #############
 # GAME PHASE
 #############
-latest_server_message = None
+latest_server_message_values: list[str] = []
 while running:
+    time_since_last_packet += delta_time
+    
     # We drain the buffer and get only the latest package
     while True:
         try:
             server_message, _ = client_socket.recvfrom(1024)
-            latest_server_message = server_message
+            message_values = server_message.decode().split("|")
+            
+            # Index 5 is packet num
+            if message_values[5] > latest_server_message_values[5]:
+                latest_server_message_values = message_values
         except BlockingIOError:
             break
+        
     # If we received a package during this tick, process it
-    if latest_server_message:
-        latest_server_message = latest_server_message.decode()  # type: ignore
+    if latest_server_message_values:
+        time_since_last_packet = 0
         process_server_message(
-            latest_server_message,
+            latest_server_message_values,
             player_id,
             player1,
             player2)
+    elif time_since_last_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_ACTION:
+        handle_server_connection_lost()
 
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
@@ -187,8 +195,6 @@ while running:
 
     # Fill the screen with the colour black, wipes everything from last frame away
     screen.fill("black")
-    if is_paused:
-        pass
 
     keys = pygame.key.get_pressed()
     player_controller.handle_movement(keys)

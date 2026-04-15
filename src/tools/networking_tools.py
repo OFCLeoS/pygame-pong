@@ -13,7 +13,7 @@ def send_client_message(client_socket: Socket, server, player_id: int, player_po
     client_socket.sendto(message.encode(), server)
 
 
-def process_server_message(message, player_id: int, player1: Rectangle, player2: Rectangle):
+def process_server_message(message_values: list[str], player_id: int, player1: Rectangle, player2: Rectangle):
     """
         Processes the server message and acts accordingly:
             - Sets the other player's position
@@ -21,14 +21,13 @@ def process_server_message(message, player_id: int, player1: Rectangle, player2:
             - When a score change is detected -> recenter the game
             - If the direction has been different for too long, change the direction as well as the ball position to the server's
         Args:
-            - The packet received by the server
+            - The information received by the client
             - The ID of the player that is receiving the packet
             - Player 1 Object
             - Player 2 Object
     """
 
     # Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE|PACKET_NUM
-    message_values = message.split("|")
 
     ball_position_values = message_values[0].split(",")
     ball_position = Vector2(
@@ -49,4 +48,11 @@ def process_server_message(message, player_id: int, player1: Rectangle, player2:
             float(player1_pos_values[0]), float(player1_pos_values[1]))
         player1.set_position(player1_pos)
 
-    # TODO: HANDLE SCORE AND PACKET_NUM AND CORRECTIONS!!!
+    # TODO: HANDLE SCORE AND PACKET_NUM AND CORRECTIONS!!! (0 ball -> immidiate correction)
+
+
+def handle_client_connection_lost():
+    pass
+
+def handle_server_connection_lost():
+    pass
