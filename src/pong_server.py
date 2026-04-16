@@ -1,6 +1,7 @@
 import socket
 from socket import socket as Socket
 import random
+import time
 import pygame
 from pygame import Vector2
 
@@ -10,7 +11,7 @@ from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
 from tools.game_tools import draw_game
-from tools.networking_tools import process_server_message, send_client_message
+from tools.networking_tools import process_server_message, send_client_message, send_server_message
 from values import game_settings
 
 
@@ -96,57 +97,49 @@ while not server_started:
         continue
     
     server = (host, port)
+    server_socket.bind(server)
+    print("Server started")
     #TODO: CHECK VALID IP
     server_started=True
 
+player1_address=None
+player2_address=None
+
+game_ready=False
+player1_joined=False
+while not game_ready:
 # waiting for players to join
-data, player1_address = server_socket.recvfrom(1024)
-data=data.decode()
-if data=="J":
-    server_socket.sendto(str(1).encode(),player1_address )
+    if not player1_joined:
+        data, player1_address = server_socket.recvfrom(1024)
+        data=data.decode()
+        if data=="J":
+            server_socket.sendto(str(1).encode(),player1_address )
+            player1_joined=True
+    else:
+        data, player2_address = server_socket.recvfrom(1024)
+        data=data.decode()
+        if data=="J":
+            server_socket.sendto(str(2).encode(),player2_address )
+            game_ready=True
 
-data, player2_address = server_socket.recvfrom(1024)
-data=data.decode()
-if data=="J":
-    server_socket.sendto(str(2).encode(),player2_address )
 
 
 
-packet_number = 0
 
-# We should have gotten an ID back at this point
-player = None
-player_id = 0
-if data == "1":
-    player_id = 1
-    player = player1
-else:
-    player_id = 2
-    player = player2
 
-player_controller = ShapeController(
-    player,
-    {
-        pygame.K_w: Vector2(0, -game_settings.PLAYER_SPEED),
-        pygame.K_s: Vector2(0, game_settings.PLAYER_SPEED)
-    },
-    game_settings.PLAYER_MIN_Y_POS,
-    game_settings.PLAYER_MAX_Y_POS)
+
+packet_number_p1 = 0
+packet_number_p2 = 0
+packet_number_server=0
+
+
 
 
 # We should NOT wait for packages for the game to look smooth
-client_socket.setblocking(False)
+server_socket.setblocking(False)
 
-# pygame setup
-pygame.init()
-text_font = pygame.font.SysFont("Courier New", game_settings.SCORE_SIZE)
-screen = pygame.display.set_mode(
-    (game_settings.SCREEN_WIDTH,
-     game_settings.SCREEN_HEIGHT))
-clock = pygame.time.Clock()
+
 running = True
-delta_time = 0
-
 is_paused = False
 time_since_pause = 0
 
@@ -156,82 +149,64 @@ time_since_pause = 0
 #############
 latest_server_message = None
 while running:
+    latest_player1_position_message=""
+    latest_player2_position_message=""
     # We drain the buffer and get only the latest package
     while True:
+        
         try:
-            server_message, _ = client_socket.recvfrom(1024)
-            latest_server_message = server_message
+            # recieves from client: player_id|player_position_x,player_position_y|packet_number
+            
+            client_message, adress = server_socket.recvfrom(1024)
+            client_message=client_message.decode()
+            client_message_list=client_message.split("|")
+            player_id=int(client_message_list[0])
+            player_position=client_message_list[1]
+            client_packet_number=int(client_message[2])
+            old_packet_number_p1=0
+            old_packet_number_p2=0
+            
+            if player_id==1 and  client_packet_number > old_packet_number_p1 :
+                latest_player1_position_message = client_message_list[1]
+                old_packet_number_p1=client_packet_number
+            
+            if player_id==2 and  client_packet_number > old_packet_number_p2 :
+                latest_player2_position_message = client_message_list[1]
+                old_packet_number_p2=client_packet_number
+
         except BlockingIOError:
             break
-    # If we received a package during this tick, process it
-    if latest_server_message:
-        latest_server_message = latest_server_message.decode()  # type: ignore
-        process_server_message(
-            latest_server_message,
-            player_id,
-            player1,
-            player2)
+    
+    if latest_player1_position_message:
+        latest_player1_message_x=float(latest_player1_position_message.split(",")[0])
+        latest_player1_message_y=float(latest_player1_position_message.split(",")[1])
+        player1_position=Vector2(latest_player1_message_x,latest_player1_message_y)
+        player1.set_position(player1_position)
+    if latest_player2_position_message:
+        latest_player2_message_x=float(latest_player2_position_message.split(",")[0])
+        latest_player2_message_y=float(latest_player2_position_message.split(",")[1])
+        player2_position=Vector2(latest_player2_message_x,latest_player2_message_y)
+        player2.set_position(player2_position)
 
-    # poll for events
-    # pygame.QUIT event means the user clicked X to close your window
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    
+    
+    
 
-    # Fill the screen with the colour black, wipes everything from last frame away
-    screen.fill("black")
+
+
+    
     if is_paused:
-        pass
-
-    keys = pygame.key.get_pressed()
-    player_controller.handle_movement(keys)
-
-    draw_game(
-        screen,
-        player1,
-        player2,
-        ball,
-        terrain_lines,
-        wall_top,
-        wall_bottom,
-        goal_left,
-        goal_right,
-        0, 0,  # TODO: SCORE
-        text_font)
-
+        time_since_pause += delta_time
+        if time_since_pause >= PAUSE_TIME:
+            time_since_pause = 0
+            start_game()  
+            
+            
     physics_system.handle_physics()
+    send_server_message(server_socket,player1_address,player2_address,ball.shape.get_position(),ball.direction,player1.get_position(),player2.get_position(),goal_manager.get_player_scores(),packet_number_server)
+    packet_number_server+=1
+    print(packet_number_server)
+    time.sleep(1/60)
+server_socket.close()
 
-    player_position = player.get_position()
-    send_client_message(
-        client_socket,
-        server,
-        player_id,
-        player_position.x,
-        player_position.y,
-        packet_number)
-    packet_number += 1
 
-    # Update the contents of the entire display
-    pygame.display.flip()
-
-    # Limits FPS to 60
-    delta_time = clock.tick(60) / 1000
-
-client_socket.close()
-pygame.quit()
-
-# NETWORKING ARCHITECTURE
-# UDP
-# - Timestamped packages
-# Server-Client Structure
-# - One player's machine is the Structure
-# Server sends players
-# - Ball Position -> THIS SHOULD BE CALCULATED IN THE CLIENT?
-# - Ball Direction
-# - Player Position
-# - Score
-# Players send to Server
-# - Player ID
-# - Desired Movement Direction
-# Server stops receiving packets for x time -> timeout
-##############################

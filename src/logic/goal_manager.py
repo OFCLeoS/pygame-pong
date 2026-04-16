@@ -1,3 +1,6 @@
+from pygame import Vector2
+
+
 class GoalManager:
     def __init__(self, player_ids_list: list[int], on_goal_func):
         self.__player_score_dic: dict[int, int] = dict()
@@ -13,3 +16,7 @@ class GoalManager:
         
     def get_player_score(self,player_id: int) -> int:
         return self.__player_score_dic[player_id]
+
+    # Bandaid Method
+    def get_player_scores(self)->Vector2:
+        return Vector2(self.__player_score_dic[1],self.__player_score_dic[2])
