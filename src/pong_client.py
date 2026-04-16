@@ -83,7 +83,7 @@ def handle_join_phase():
     server = None
     while not joined_game:
         # We ask the User for the server Address
-        host = input(" Server IP (or \"q\" to quit) -> ").lower
+        host = input(" Server IP (or \"q\" to quit) -> ").lower()
         if host == "q":
             print("Quitting...")
             client_socket.close()
