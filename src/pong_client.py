@@ -158,7 +158,7 @@ def handle_join_phase():
 
     # The game will not have started until we start receiving packets, so we just wait for one
     client_socket.recvfrom(1024)
-    
+
     # Game View Setup
     global running, screen, time_since_last_packet
     pygame.display.init()
@@ -167,9 +167,9 @@ def handle_join_phase():
         game_settings.SCREEN_HEIGHT
     ))
     running = True
-    
+
     time_since_last_packet = 0
-    
+
     # We should NOT wait for packages for the game to look smooth
     client_socket.setblocking(False)
 
@@ -194,7 +194,9 @@ while running:
     # Main Game Loop
     else:
         latest_server_message_values = []
+        print(f"BEFORE: {time_since_last_packet}")
         time_since_last_packet += delta_time
+        print(f"AFTER: {time_since_last_packet}")
         # We drain the buffer and get only the latest package (or Quit if we receive "Q")
         while True:
             try:
@@ -252,12 +254,12 @@ while running:
             pygame.display.quit()
             print("Server Connection was Lost.")
             print(f"TIM: {time_since_last_packet}")
-            
+
             # We send a "Q" message in-case the server is still listening
             quit_message = "Q"
             client_socket.sendto(quit_message.encode(), server)  # type: ignore
             print_game_result(player1_score, player2_score)
-            
+
             continue
 
         if pygame.display.get_active():
@@ -275,13 +277,14 @@ while running:
                 joined_game = False
                 pygame.display.quit()
                 quit_message = "Q"
-                client_socket.sendto(quit_message.encode(), server)  # type: ignore
+                client_socket.sendto(quit_message.encode(),
+                                     server)  # type: ignore
                 print_game_result(player1_score, player2_score)
                 continue
-        
+
             # Fill the screen with the colour black, wipes everything from last frame away
             screen.fill("black")
-            
+
             draw_game(
                 screen,
                 player1,
@@ -294,7 +297,7 @@ while running:
                 goal_right,
                 player1_score, player2_score,
                 text_font)
-            
+
             # Update the contents of the entire display
             pygame.display.flip()
 
