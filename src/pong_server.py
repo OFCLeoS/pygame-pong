@@ -1,129 +1,196 @@
 import socket
+from socket import socket as Socket
+import random
 import time
-
 from pygame import Vector2
 
+from logic.goal_manager import GoalManager
+from logic.shape_controller import ShapeController
+from logic.physics_system import PhysicsSystem
 
-def process_client_message(message):
-    """
-        Processes the client message and acts accordingly:
-            TODO SERVER
-        Args:
-            The packet received by the client
-    """
-    # Message is formatted as follows: ID|POSITION|PACKET_NUM
-    message_values = message.split("|")
+from tools import game_tools
+from tools.networking_tools import send_server_message
+from values import game_settings
 
-    id = int(message_values[0])
+player1 = game_tools.create_player_1()
 
-    player_position_values = message_values[1].split(",")
+player2 = game_tools.create_player_2()
 
-    if id == 1:
-        global player1_pos
-        player1_pos = f"{player_position_values[0]},{player_position_values[1]}"
-    else:
-        global player2_pos
-        player2_pos = f"{player_position_values[0]},{player_position_values[1]}"
+ball = game_tools.create_ball()
 
-    # TODO PACKAGE CHECK
+terrain_lines = game_tools.VISUAL_create_terrain_lines()
 
-# Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE|PACKET_NUM
+# Walls Setup
+wall_top = game_tools.create_top_wall()
+wall_bottom = game_tools.create_bottom_wall()
 
+last_goal_player_id = random.randint(1,2)
 
-def get_game_state_message() -> str:
-    return f"200,200|10,5|{player1_pos}|{player2_pos}|0,0|0"
+def on_goal(last_goal_id: int):
+    # TODO: MODIFY THIS FOR CLIENT
+    global last_goal_player_id
+    last_goal_player_id = last_goal_id
+    ball.shape.set_position(game_settings.BALL_STARTING_POS)
+    player1.set_position(game_settings.PLAYER1_STARTING_POS)
+    player2.set_position(game_settings.PLAYER2_STARTING_POS)
+    pause_game()
 
 
-host = input(" host -> ")
-port = int(input(" port -> "))
-server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-server_socket.bind((host, port))
-print("Server Started")
+def pause_game():
+    global is_paused
+    is_paused = True
+    ball.direction.x = 0
+    ball.direction.y = 0
 
-player1_joined = False
-player2_joined = False
-num = 0
 
-player1_pos = "100,100"
-player2_pos = "100,100"
+def start_game():
+    global is_paused
+    is_paused = False
+    coefficient = random.uniform(-1, 1)
+    ball.direction.x = game_settings.BALL_STARTING_X_SPEED if last_goal_player_id % 2 != 0 else - \
+        game_settings.BALL_STARTING_X_SPEED
+    ball.direction.y = game_settings.BALL_STARTING_Y_SPEED * coefficient
 
-player1_address = None
-player2_address = None
+# Goals Setup
+goal_manager = GoalManager(
+    [game_settings.PLAYER1_ID, game_settings.PLAYER2_ID],
+    on_goal)
 
-while not player2_joined:
-    message, address = server_socket.recvfrom(1024)
-    message = message.decode()
-    if not message:
-        break
+goal_left = game_tools.create_left_goal(goal_manager)
+goal_right = game_tools.create_right_goal(goal_manager)
+
+# PHYSICS SYSTEM
+physics_system = PhysicsSystem(
+    [
+        player1.collider,
+        player2.collider,
+        ball.shape.collider,
+        wall_top.collider,
+        wall_bottom.collider,
+        goal_left.collider,
+        goal_right.collider
+    ],
+    [ball])
+
+################
+# SERVER START
+################
+server_socket = Socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+server_started = False  
+server = None
+while not server_started:
+    # We ask the User for the server Address
+    host = input(" host -> ")
+    try:
+        port = int(input(" port -> "))
+    except ValueError:
+        print("Invalid port was provided")
+        continue
+    
+    server = (host, port)
+    server_socket.bind(server)
+    print("Server started")
+    #TODO: CHECK VALID IP
+    server_started=True
+
+player1_address=None
+player2_address=None
+
+game_ready=False
+player1_joined=False
+while not game_ready:
+# waiting for players to join
     if not player1_joined:
-        if message == "J":
-            message = "1"
-            print("Sending: ")
-            print(message)
-            player1_address = address
-            server_socket.sendto(message.encode(), address)
-            player1_joined = True
-    elif not player2_joined:
-        if message == "J":
-            message = "2"
-            print("Sending: ")
-            print(message)
-            player2_address = address
-            server_socket.sendto(message.encode(), address)
-            player2_joined = True
+        data, player1_address = server_socket.recvfrom(1024)
+        data=data.decode()
+        if data=="J":
+            server_socket.sendto(str(1).encode(),player1_address )
+            player1_joined=True
+    else:
+        data, player2_address = server_socket.recvfrom(1024)
+        data=data.decode()
+        if data=="J":
+            server_socket.sendto(str(2).encode(),player2_address )
+            game_ready=True
 
+packet_number_p1 = 0
+packet_number_p2 = 0
+packet_number_server=0
+
+# We should NOT wait for packages for the game to look smooth
 server_socket.setblocking(False)
 
-while True:
+target_fps = 60
+frame_time = 1 / target_fps
+last_time = time.perf_counter()
 
-    latest_player1_message = None
-    latest_player2_message = None
+running = True
+is_paused = False
+time_since_pause = 0
+
+#############
+# GAME PHASE
+#############
+latest_server_message = None
+pause_game()
+while running:
+    start_time = time.perf_counter()
+
+    delta_time = start_time - last_time
+    last_time = start_time
+    
+    latest_player1_position_message=""
+    latest_player2_position_message=""
     # We drain the buffer and get only the latest package
     while True:
         try:
-            client_message, address = server_socket.recvfrom(1024)
-            if client_message:
-                client_message = client_message.decode()
-                if client_message[0] == "1":
-                    latest_player1_message = client_message
-                elif client_message[0] == "2":
-                    latest_player2_message = client_message
-                elif client_message[0] == "J":
-                    refuse_entry_message = "N"
-                    server_socket.sendto(refuse_entry_message.encode(), address)
-            if num == 0:
-                print("Message from: " + str(address))
-                print("Received : ")
-                print(client_message)
-            num = (num+1) % 100
+            # recieves from client: player_id|player_position_x,player_position_y|packet_number
+            client_message, adress = server_socket.recvfrom(1024)
+            client_message=client_message.decode()
+            client_message_list=client_message.split("|")
+            player_id=int(client_message_list[0])
+            player_position=client_message_list[1]
+            client_packet_number=int(client_message[2])
+            old_packet_number_p1=0
+            old_packet_number_p2=0
+            
+            if player_id==1 and  client_packet_number > old_packet_number_p1 :
+                latest_player1_position_message = client_message_list[1]
+                old_packet_number_p1=client_packet_number
+            
+            if player_id==2 and  client_packet_number > old_packet_number_p2 :
+                latest_player2_position_message = client_message_list[1]
+                old_packet_number_p2=client_packet_number
+
         except BlockingIOError:
             break
+    
+    if latest_player1_position_message:
+        latest_player1_message_x=float(latest_player1_position_message.split(",")[0])
+        latest_player1_message_y=float(latest_player1_position_message.split(",")[1])
+        player1_position=Vector2(latest_player1_message_x,latest_player1_message_y)
+        player1.set_position(player1_position)
+    if latest_player2_position_message:
+        latest_player2_message_x=float(latest_player2_position_message.split(",")[0])
+        latest_player2_message_y=float(latest_player2_position_message.split(",")[1])
+        player2_position=Vector2(latest_player2_message_x,latest_player2_message_y)
+        player2.set_position(player2_position)
 
-    # If we received a package during this tick, process it
-    if latest_player1_message:
-        process_client_message(latest_player1_message)
-    if latest_player2_message:
-        process_client_message(latest_player2_message)
+    if is_paused:
+        time_since_pause += delta_time
+        if time_since_pause >= game_settings.PAUSE_TIME:
+            time_since_pause = 0
+            start_game()
+            
+    physics_system.handle_physics()
+    send_server_message(server_socket,player1_address,player2_address,ball.shape.get_position(),ball.direction,player1.get_position(),player2.get_position(),goal_manager.get_player_scores(),packet_number_server)
+    packet_number_server+=1
+    print(packet_number_server)
+    
+    elapsed = time.perf_counter() - start_time
+    sleep_time = frame_time - elapsed
 
-    game_state_message = get_game_state_message()
-    game_state_message = game_state_message.encode()
-    server_socket.sendto(game_state_message, player1_address)  # type: ignore
-    server_socket.sendto(game_state_message, player2_address)  # type: ignore
-    time.sleep(1/60)
-
+    if sleep_time > 0:
+        time.sleep(sleep_time)
+    
 server_socket.close()
-
-# NETWORKING ARCHITECTURE
-# UDP
-# - Timestamped packages
-# Server-Client Structure
-# - One player's machine is the Structure
-# Server sends players
-# - Ball Position -> THIS SHOULD BE CALCULATED IN THE CLIENT?
-# - Ball Direction
-# - Player Position
-# - Score
-# Players send to Server
-# - Player ID
-# - Desired Movement Direction
-# Server stops receiving packets for x time -> timeout
