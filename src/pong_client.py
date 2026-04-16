@@ -128,7 +128,7 @@ def handle_join_phase():
             except socket.timeout:
                 print("HIIIIII")
                 continue
-        print("Connection to the Server could not be established!!!!!!!!!!!!!!")
+        print("Connection to the Server could not be established")
 
     client_socket.settimeout(None)
     packet_number = 0
@@ -167,11 +167,14 @@ handle_join_phase()  # Just to be 100% sure this runs atleast onece
 while running:
     if not joined_game:
         # We first dump all packets that we may have received
+        client_socket.setblocking(True)
+        client_socket.settimeout(1.5)
         while True:
             try:
                 client_socket.recvfrom(1024)
             except BlockingIOError:
                 break
+        client_socket.settimeout(None)
         handle_join_phase()
     # Main Game Loop
     else:
@@ -183,7 +186,7 @@ while running:
                 server_message, _ = client_socket.recvfrom(1024)
                 message_values = server_message.decode().split("|")
                 
-                if message_values[0] == "Q":
+                if message_values and message_values[0] == "Q":
                     display_game_result(message_values)
                     joined_game = False
                     pygame.display.quit()
