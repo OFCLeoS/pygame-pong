@@ -224,9 +224,10 @@ while running:
 
         # poll for events
         # pygame.QUIT event means the user clicked X to close your window
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if pygame.display.get_active():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         # Fill the screen with the colour black, wipes everything from last frame away
         screen.fill("black")
