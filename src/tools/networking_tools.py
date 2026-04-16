@@ -64,6 +64,7 @@ def process_server_message(message_values: list[str],
         ball.direction = server_ball_direction
         ball.shape.set_position(server_ball_position)
     elif time_since_different_ball_dir > networking_settings.ALLOWED_DIRECTION_ERROR_TIME:
+        print("DIR CHANGED")
         # BALL DIRECTION AND POSITION SYNCING
         ball_direction_values = message_values[1].split(",")
         server_ball_direction = Vector2(

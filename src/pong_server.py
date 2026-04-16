@@ -113,15 +113,18 @@ while not game_ready:
             server_socket.sendto(str(2).encode(),player2_address )
             game_ready=True
 
-packet_number_p1 = 0
-packet_number_p2 = 0
-packet_number_server=0
-
 # We should NOT wait for packages for the game to look smooth
 server_socket.setblocking(False)
 
-target_fps = 60
-frame_time = 1 / target_fps
+packet_number_p1 = 0
+packet_number_p2 = 0
+
+packet_number_server=0
+latest_server_message = None
+
+# Iterations Per Second
+target_ips = 60
+iteration_time = 1 / target_ips
 last_time = time.perf_counter()
 
 running = True
@@ -131,7 +134,6 @@ time_since_pause = 0
 #############
 # GAME PHASE
 #############
-latest_server_message = None
 pause_game()
 while running:
     start_time = time.perf_counter()
@@ -139,28 +141,26 @@ while running:
     delta_time = start_time - last_time
     last_time = start_time
     
-    latest_player1_position_message=""
-    latest_player2_position_message=""
+    latest_player1_position_message = None
+    latest_player2_position_message = None
     # We drain the buffer and get only the latest package
     while True:
         try:
             # recieves from client: player_id|player_position_x,player_position_y|packet_number
             client_message, adress = server_socket.recvfrom(1024)
             client_message=client_message.decode()
+            
             client_message_list=client_message.split("|")
+            
             player_id=int(client_message_list[0])
-            player_position=client_message_list[1]
             client_packet_number=int(client_message[2])
-            old_packet_number_p1=0
-            old_packet_number_p2=0
             
-            if player_id==1 and  client_packet_number > old_packet_number_p1 :
+            if player_id==1 and (not latest_player1_position_message or client_packet_number > packet_number_p1) :
                 latest_player1_position_message = client_message_list[1]
-                old_packet_number_p1=client_packet_number
-            
-            if player_id==2 and  client_packet_number > old_packet_number_p2 :
+                packet_number_p1=client_packet_number   
+            elif player_id==2 and  (not latest_player2_position_message or client_packet_number > packet_number_p2) :
                 latest_player2_position_message = client_message_list[1]
-                old_packet_number_p2=client_packet_number
+                packet_number_p2=client_packet_number
 
         except BlockingIOError:
             break
@@ -188,7 +188,7 @@ while running:
     print(packet_number_server)
     
     elapsed = time.perf_counter() - start_time
-    sleep_time = frame_time - elapsed
+    sleep_time = iteration_time - elapsed
 
     if sleep_time > 0:
         time.sleep(sleep_time)

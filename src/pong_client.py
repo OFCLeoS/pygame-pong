@@ -38,7 +38,8 @@ wall_bottom = game_tools.create_bottom_wall()
 time_since_different_ball_dir = 0
 
 
-def recenter_game():
+def CLIENT_on_goal():
+    ball.direction = Vector2(0,0)
     ball.shape.set_position(game_settings.BALL_STARTING_POS)
     player1.set_position(game_settings.PLAYER1_STARTING_POS)
     player2.set_position(game_settings.PLAYER2_STARTING_POS)
@@ -53,7 +54,7 @@ def recenter_game():
 # Goals Setup (No collisions)
 goal_manager = GoalManager(
     [game_settings.PLAYER1_ID, game_settings.PLAYER2_ID],
-    recenter_game)
+    CLIENT_on_goal)
 
 goal_left = game_tools.create_left_goal(goal_manager)
 goal_right = game_tools.create_right_goal(goal_manager)
@@ -187,6 +188,7 @@ while running:
                 float(ball_direction_values[0]), float(ball_direction_values[1]))
 
             if ball_direction != ball.direction:
+                print(time_since_different_ball_dir)
                 time_since_different_ball_dir += delta_time
             else:
                 time_since_different_ball_dir = 0
