@@ -213,9 +213,9 @@ def print_game_result(player1_score: int, player2_score: int):
     """
     print()
     print("\t\t---------------------------")
-    print("\t\t\t---GAME HAS ENDED---")
-    print("\t\t\t--Final Score:--")
-    print(f"\t\t\t- PLAYER 1 (LEFT): {player1_score} -")
-    print(f"\t\t\t- PLAYER 2 (RIGHT): {player2_score} -")
+    print("\t\t--- GAME HAS ENDED ---")
+    print("\t\t-- Final Score --")
+    print(f"\t\t- PLAYER 1 (LEFT): {player1_score} -")
+    print(f"\t\t- PLAYER 2 (RIGHT): {player2_score} -")
     print("\t\t---------------------------")
     print()
