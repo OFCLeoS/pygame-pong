@@ -78,7 +78,7 @@ def process_server_message(message_values: list[str],
         player1.set_position(server_player1_pos)
 
     score_values = message_values[4].split(",")
-    server_scores = Vector2(int(score_values[0]), int(score_values[1]))
+    server_scores = Vector2(int(float(score_values[0])), int(float(score_values[1])))
     if goal_manager.get_player_scores() != server_scores:
         goal_manager.set_score(server_scores)
 

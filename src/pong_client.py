@@ -248,7 +248,7 @@ client_socket.close()
 
 # NETWORKING ARCHITECTURE
 # UDP
-# - Timestamped packages
+# - Timestamped packages 
 # Server-Client Structure
 # - One player's machine is the Structure
 # Server sends players
