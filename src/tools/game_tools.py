@@ -22,7 +22,9 @@ def create_player_1() -> Rectangle:
     player1_collider = PaddleCollider(
         Vector2(game_settings.PLAYER1_STARTING_POS.x+(game_settings.PLAYER_WIDTH/2),
                 game_settings.PLAYER1_STARTING_POS.y+(game_settings.PLAYER_HEIGHT/2)),
-        Vector2(game_settings.PLAYER_WIDTH/2, game_settings.PLAYER_HEIGHT/2))
+        Vector2(game_settings.PLAYER_WIDTH/2,
+                game_settings.PLAYER_HEIGHT/2))
+    
     return Rectangle(
         game_settings.PLAYER_SIZE,
         game_settings.PLAYER1_STARTING_POS,
@@ -212,10 +214,10 @@ def print_game_result(player1_score: int, player2_score: int):
         Prints the game result in the console
     """
     print()
-    print("\t\t---------------------------")
-    print("\t\t--- GAME HAS ENDED ---")
-    print("\t\t-- Final Score --")
-    print(f"\t\t- PLAYER 1 (LEFT): {player1_score} -")
-    print(f"\t\t- PLAYER 2 (RIGHT): {player2_score} -")
-    print("\t\t---------------------------")
+    print("\t---------------------------")
+    print("\t --- GAME HAS ENDED ---")
+    print("\t -- Final Score --")
+    print(f"\t - PLAYER 1 (LEFT): {player1_score} -")
+    print(f"\t - PLAYER 2 (RIGHT): {player2_score} -")
+    print("\t---------------------------")
     print()

@@ -1,3 +1,4 @@
+import ipaddress
 import socket
 from socket import socket as Socket
 import random
@@ -82,13 +83,14 @@ def handle_join_phase():
     client_socket.setblocking(True)
     server = None
     while not joined_game:
-        # We ask the User for the server Address
-        host = input(" Server IP (or \"q\" to quit) -> ").lower()
-        if host == "q":
-            print("Quitting...")
-            client_socket.close()
-            quit()
         try:
+            # We ask the User for the server Address
+            host = input(" Server IP (or \"q\" to quit) -> ").lower()
+            if host == "q":
+                print("Quitting...")
+                client_socket.close()
+                quit()
+            ipaddress.ip_address(host) # We Check if the IP is valid (ValueError thrown otherwise)
             port = int(input(" Port -> "))
             server = (host, port)
         except ValueError:

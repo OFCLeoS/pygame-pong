@@ -1,3 +1,4 @@
+import ipaddress
 import socket
 from socket import socket as Socket
 import random
@@ -10,7 +11,7 @@ from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
 from tools.networking_tools import send_server_message, send_server_quit_message
-from values import game_settings
+from values import game_settings, networking_settings
 
 player1 = game_tools.create_player_1()
 
@@ -46,10 +47,11 @@ def pause_game():
 def start_game():
     global is_paused
     is_paused = False
-    coefficient = random.uniform(-1, 1)
-    ball.direction.x = game_settings.BALL_STARTING_X_SPEED if last_goal_player_id % 2 != 0 else - \
-        game_settings.BALL_STARTING_X_SPEED
-    ball.direction.y = game_settings.BALL_STARTING_Y_SPEED * coefficient
+    if ball.direction == Vector2(0, 0):
+        coefficient = random.uniform(-1, 1)
+        ball.direction.x = game_settings.BALL_STARTING_X_SPEED if last_goal_player_id % 2 != 0 else - \
+            game_settings.BALL_STARTING_X_SPEED
+        ball.direction.y = game_settings.BALL_STARTING_Y_SPEED * coefficient
 
 
 # Goals Setup
@@ -80,16 +82,18 @@ server_socket = Socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 server_started = False
 server = None
 while not server_started:
-    # We ask the User for the server Address
-    host = input(" host -> ")
     try:
+        # We ask the User for the server Address
+        host = input(" host -> ")
+        # We Check if the IP is valid (ValueError thrown otherwise)
+        ipaddress.ip_address(host)
         port = int(input(" port -> "))
+        server = (host, port)
+        server_socket.bind(server)
     except ValueError:
-        print("Invalid port was provided")
+        print("Invalid address was provided")
         continue
 
-    server = (host, port)
-    server_socket.bind(server)
     print("Server started")
     # TODO: CHECK VALID IP
     server_started = True
@@ -124,6 +128,9 @@ packet_number_p2 = 0
 
 packet_number_server = 0
 latest_server_message = None
+
+time_since_last_player1_packet = 0
+time_since_last_player2_packet = 0
 
 # Iterations Per Second
 target_ips = 60
@@ -182,7 +189,11 @@ while running:
             running = False
             break
 
+    time_since_last_player1_packet += delta_time
+    time_since_last_player2_packet += delta_time
+
     if latest_player1_position_message:
+        time_since_last_player1_packet = 0
         latest_player1_message_x = float(
             latest_player1_position_message.split(",")[0])
         latest_player1_message_y = float(
@@ -190,7 +201,22 @@ while running:
         player1_position = Vector2(
             latest_player1_message_x, latest_player1_message_y)
         player1.set_position(player1_position)
+    elif time_since_last_player1_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE:
+        if not is_paused:
+            pause_game()
+    elif time_since_last_player1_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
+        # We Stop the game
+        send_server_quit_message(
+            server_socket,
+            player1_address,
+            player2_address,
+            goal_manager.get_player_scores()
+        )
+        running = False
+        break
+
     if latest_player2_position_message:
+        time_since_last_player2_packet = 0
         latest_player2_message_x = float(
             latest_player2_position_message.split(",")[0])
         latest_player2_message_y = float(
@@ -198,7 +224,20 @@ while running:
         player2_position = Vector2(
             latest_player2_message_x, latest_player2_message_y)
         player2.set_position(player2_position)
-
+    elif time_since_last_player2_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE:
+        if not is_paused:
+            pause_game()
+    elif time_since_last_player2_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
+        # We Stop the game
+        send_server_quit_message(
+            server_socket,
+            player1_address,
+            player2_address,
+            goal_manager.get_player_scores()
+        )
+        running = False
+        break
+        
     if is_paused:
         time_since_pause += delta_time
         if time_since_pause >= game_settings.PAUSE_TIME:
@@ -207,8 +246,17 @@ while running:
     else:
         physics_system.handle_physics()
 
-    send_server_message(server_socket, player1_address, player2_address, ball.shape.get_position(
-    ), ball.direction, player1.get_position(), player2.get_position(), goal_manager.get_player_scores(), packet_number_server)
+    send_server_message(
+        server_socket,
+        player1_address,
+        player2_address,
+        ball.shape.get_position(),
+        ball.direction,
+        player1.get_position(),
+        player2.get_position(),
+        goal_manager.get_player_scores(),
+        packet_number_server
+    )
     packet_number_server += 1
 
     elapsed = time.perf_counter() - start_time

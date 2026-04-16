@@ -8,7 +8,7 @@ The time a machine can go without recceiving any packet before the connection is
 ########
 
 
-TIME_WITHOUT_PACKETS_BEFORE_PAUSE = 2
+TIME_WITHOUT_PACKETS_BEFORE_PAUSE = 3
 '''
 The time a server can go without recceiving any packet from a client before the game is paused
 '''
