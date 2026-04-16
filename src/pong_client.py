@@ -156,6 +156,9 @@ def handle_join_phase():
     player1_score = 0
     player2_score = 0
 
+    # The game will not have started until we start receiving packets, so we just wait for one
+    client_socket.recvfrom(1024)
+    
     # Game View Setup
     global running, screen, time_since_last_packet
     pygame.display.init()
@@ -167,8 +170,6 @@ def handle_join_phase():
     
     time_since_last_packet = 0
     
-    # The game will not have started until we start receiving packets, so we just wait for one
-    client_socket.recvfrom(1024)
     # We should NOT wait for packages for the game to look smooth
     client_socket.setblocking(False)
 
@@ -211,6 +212,12 @@ while running:
                     latest_server_message_values = message_values
             except BlockingIOError:
                 break
+            except ConnectionResetError:
+                joined_game = False
+                pygame.display.quit()
+                print("Server Connection was Lost.")
+                print_game_result(player1_score, player2_score)
+                break
 
         # We could have received a "Q" message
         if not running:
@@ -243,8 +250,14 @@ while running:
         elif time_since_last_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
             joined_game = False
             pygame.display.quit()
-            print("Server connection was lost.")
+            print("Server Connection was Lost.")
+            print(f"TIM: {time_since_last_packet}")
+            
+            # We send a "Q" message in-case the server is still listening
+            quit_message = "Q"
+            client_socket.sendto(quit_message.encode(), server)  # type: ignore
             print_game_result(player1_score, player2_score)
+            
             continue
 
         if pygame.display.get_active():
@@ -253,9 +266,6 @@ while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-
-        # Fill the screen with the colour black, wipes everything from last frame away
-        screen.fill("black")
 
         keys = pygame.key.get_pressed()
         player_controller.handle_movement(keys)
@@ -269,7 +279,10 @@ while running:
             client_socket.sendto(quit_message.encode(), server)  # type: ignore
             print_game_result(player1_score, player2_score)
             continue
-
+        
+        # Fill the screen with the colour black, wipes everything from last frame away
+        screen.fill("black")
+        
         draw_game(
             screen,
             player1,

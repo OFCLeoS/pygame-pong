@@ -182,6 +182,10 @@ while running:
                     server_socket, player1_address, player2_address, goal_manager.get_player_scores())
                 running = False
                 break
+            elif client_message == "J":
+                refuse_message = "N"
+                server_socket.send(refuse_message.encode(),adress)
+                continue
 
             client_message_list = client_message.split("|")
 
