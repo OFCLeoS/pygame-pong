@@ -175,6 +175,7 @@ def handle_join_phase():
     # We should NOT wait for packages for the game to look smooth
     client_socket.setblocking(False)
 
+    # We tick because the blocking call will cause issues
     clock.tick()
     delta_time = 0
 
