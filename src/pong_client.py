@@ -1,7 +1,6 @@
 import ipaddress
 import socket
 from socket import socket as Socket
-import random
 import pygame
 from pygame import Vector2
 
@@ -11,7 +10,7 @@ from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
 from tools.game_tools import display_game_result, draw_game, print_game_result
-from tools.networking_tools import handle_server_connection_lost, process_server_message, send_client_message
+from tools.networking_tools import process_server_message, send_client_message
 from values import game_settings
 from values import networking_settings
 
@@ -21,12 +20,11 @@ clock = pygame.time.Clock()
 delta_time = 0
 pygame.display.quit()
 
+player1 = game_tools.create_player_1()
+player2 = game_tools.create_player_2()
+
 player1_score = 0
 player2_score = 0
-
-player1 = game_tools.create_player_1()
-
-player2 = game_tools.create_player_2()
 
 ball = game_tools.create_ball()
 
@@ -36,7 +34,11 @@ terrain_lines = game_tools.VISUAL_create_terrain_lines()
 wall_top = game_tools.create_top_wall()
 wall_bottom = game_tools.create_bottom_wall()
 
+
 time_since_different_ball_dir = 0
+"""
+    How long it has been that the Client has had a different Ball Direction than the Server
+"""
 
 
 def CLIENT_on_goal():
@@ -76,12 +78,16 @@ physics_system = PhysicsSystem(
 
 client_socket = Socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
+
 def handle_join_phase():
+    """
+        Handles joining a Server.
+    """
     global joined_game, server, packet_number, player, player_id, player_controller
-    joined_game = False
 
     client_socket.setblocking(True)
     server = None
+    joined_game = False
     while not joined_game:
         try:
             # We ask the User for the server Address
@@ -90,14 +96,16 @@ def handle_join_phase():
                 print("Quitting...")
                 client_socket.close()
                 quit()
-            ipaddress.ip_address(host) # We Check if the IP is valid (ValueError thrown otherwise)
+            # We Check if the IP is valid (ValueError thrown otherwise)
+            ipaddress.ip_address(host)
             port = int(input(" Port -> "))
             server = (host, port)
         except ValueError:
-            print("Invalid port was provided")
+            print("An invalid port was provided")
             continue
 
         number_of_tries = 0
+        # We will wait 1 second per recvfrom to await a response from the Server
         client_socket.settimeout(1)
         # We send a Join Request (J) to the Server
         message = "J"
@@ -128,12 +136,13 @@ def handle_join_phase():
                 break
             except socket.timeout:
                 continue
-        if not joined_game:
+        if number_of_tries > networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
             print("Connection to the Server could not be established")
 
     client_socket.settimeout(None)
     packet_number = 0
 
+    # Once we have received our player ID, we now know who to control
     player_controller = ShapeController(
         player,
         {
@@ -143,10 +152,11 @@ def handle_join_phase():
         game_settings.PLAYER_MIN_Y_POS,
         game_settings.PLAYER_MAX_Y_POS)
 
-    # We should NOT wait for packages for the game to look smooth
-    client_socket.setblocking(False)
+    global player1_score, player2_score
+    player1_score = 0
+    player2_score = 0
 
-    # Game Setup
+    # Game View Setup
     global running, screen, time_since_last_packet
     pygame.display.init()
     screen = pygame.display.set_mode((
@@ -154,11 +164,13 @@ def handle_join_phase():
         game_settings.SCREEN_HEIGHT
     ))
     running = True
+    
     time_since_last_packet = 0
-
-    global player1_score, player2_score
-    player1_score = 0
-    player2_score = 0
+    
+    # The game will not have started until we start receiving packets, so we just wait for one
+    client_socket.recvfrom(1024)
+    # We should NOT wait for packages for the game to look smooth
+    client_socket.setblocking(False)
 
 
 #############
@@ -166,6 +178,7 @@ def handle_join_phase():
 #############
 handle_join_phase()  # Just to be 100% sure this runs atleast onece
 while running:
+    # This is here in case we disconnect from a Server
     if not joined_game:
         # We first dump all packets that we may have received
         client_socket.setblocking(True)
@@ -180,17 +193,16 @@ while running:
     # Main Game Loop
     else:
         latest_server_message_values = []
-        time_since_last_packet += delta_time  # type: ignore
-        # We drain the buffer and get only the latest package
+        time_since_last_packet += delta_time
+        # We drain the buffer and get only the latest package (or Quit if we receive "Q")
         while True:
             try:
                 server_message, _ = client_socket.recvfrom(1024)
                 message_values = server_message.decode().split("|")
-                
+
                 if message_values and message_values[0] == "Q":
                     display_game_result(message_values)
                     joined_game = False
-                    running = False
                     pygame.display.quit()
                     break
 
@@ -199,20 +211,21 @@ while running:
                     latest_server_message_values = message_values
             except BlockingIOError:
                 break
-            
+
         # We could have received a "Q" message
-        if not running: break
-        
+        if not running:
+            break
+
         # If we received a package during this tick, process it
         if latest_server_message_values:
             time_since_last_packet = 0
 
+            # We check if the Client Ball Direction is different from the Server's
             ball_direction_values = latest_server_message_values[1].split(",")
             ball_direction = Vector2(
                 float(ball_direction_values[0]), float(ball_direction_values[1]))
 
             if ball_direction != ball.direction:
-                print(time_since_different_ball_dir)
                 time_since_different_ball_dir += delta_time
             else:
                 time_since_different_ball_dir = 0
@@ -226,13 +239,17 @@ while running:
                 time_since_different_ball_dir,
                 goal_manager
             )
+        # If we go some time without receiving packets, we assume the connection was lost
+        elif time_since_last_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
+            joined_game = False
+            pygame.display.quit()
+            print("Server connection was lost.")
+            print_game_result(player1_score, player2_score)
+            continue
 
-        elif time_since_last_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_ACTION:
-            handle_server_connection_lost()
-
-        # poll for events
-        # pygame.QUIT event means the user clicked X to close your window
         if pygame.display.get_active():
+            # poll for events
+            # pygame.QUIT event means the user clicked X to close your window
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -250,7 +267,7 @@ while running:
             pygame.display.quit()
             quit_message = "Q"
             client_socket.sendto(quit_message.encode(), server)  # type: ignore
-            print_game_result(player1_score,player2_score)
+            print_game_result(player1_score, player2_score)
             continue
 
         draw_game(
@@ -286,19 +303,3 @@ while running:
 
 pygame.quit()
 client_socket.close()
-
-# NETWORKING ARCHITECTURE
-# UDP
-# - Timestamped packages
-# Server-Client Structure
-# - One player's machine is the Structure
-# Server sends players
-# - Ball Position -> THIS SHOULD BE CALCULATED IN THE CLIENT?
-# - Ball Direction
-# - Player Position
-# - Score
-# Players send to Server
-# - Player ID
-# - Desired Movement Direction
-# Server stops receiving packets for x time -> timeout
-##############################

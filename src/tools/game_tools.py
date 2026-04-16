@@ -12,6 +12,9 @@ from logic.goal_manager import GoalManager
 from logic.shape_game_physics_object import ShapeGamePhysicsObject
 from values import game_settings
 
+#########################################################################
+# This file contains various methods to help in the execution of the game
+#########################################################################
 
 def draw_text(screen: Surface, text: str, text_font: Font, x, y):
     txt = text_font.render(text, True, game_settings.SCORE_COLOUR)

@@ -6,7 +6,6 @@ import time
 from pygame import Vector2
 
 from logic.goal_manager import GoalManager
-from logic.shape_controller import ShapeController
 from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
@@ -25,6 +24,7 @@ terrain_lines = game_tools.VISUAL_create_terrain_lines()
 wall_top = game_tools.create_top_wall()
 wall_bottom = game_tools.create_bottom_wall()
 
+# This will decide where the ball goes to at first
 last_goal_player_id = random.randint(1, 2)
 
 
@@ -47,6 +47,7 @@ def pause_game():
 def start_game():
     global is_paused
     is_paused = False
+    # If we use start_game and the ball direction is 0,0, we assume we want to start the next round
     if ball.direction == Vector2(0, 0):
         coefficient = random.uniform(-1, 1)
         ball.direction.x = game_settings.BALL_STARTING_X_SPEED if last_goal_player_id % 2 != 0 else - \
@@ -84,18 +85,21 @@ server = None
 while not server_started:
     try:
         # We ask the User for the server Address
-        host = input(" host -> ")
+        host = input(" Server IP (or \"q\" to quit) -> ").lower()
+        if host == "q":
+            print("Quitting...")
+            server_socket.close()
+            quit()
         # We Check if the IP is valid (ValueError thrown otherwise)
         ipaddress.ip_address(host)
-        port = int(input(" port -> "))
+        port = int(input(" Port -> "))
         server = (host, port)
         server_socket.bind(server)
     except ValueError:
-        print("Invalid address was provided")
+        print("An invalid address was provided")
         continue
 
-    print("Server started")
-    # TODO: CHECK VALID IP
+    print("Server has Started")
     server_started = True
 
 player1_address = None
@@ -106,19 +110,30 @@ player1_joined = False
 while not game_ready:
     # waiting for players to join
     if not player1_joined:
-        data, player1_address = server_socket.recvfrom(1024)
-        data = data.decode()
-        if data == "J":
-            server_socket.sendto(str(1).encode(), player1_address)
-            player1_joined = True
+        try:
+            data, player1_address = server_socket.recvfrom(1024)
+            data = data.decode()
+            if data == "J":
+                server_socket.sendto(str(1).encode(), player1_address)
+                player1_joined = True
+        except ConnectionResetError:
+            print("A Player has left the game")
+            break
     else:
-        data, player2_address = server_socket.recvfrom(1024)
-        data = data.decode()
-        if data == "J":
-            server_socket.sendto(str(2).encode(), player2_address)
-            game_ready = True
-        elif data == "Q":
+        try:
+            data, player2_address = server_socket.recvfrom(1024)
+            data = data.decode()
+            if data == "J":
+                server_socket.sendto(str(2).encode(), player2_address)
+                game_ready = True
+            elif data == "Q":
+                # If Player 1 leaves, we have to wait for a Player 1 again
+                player1_joined = False
+        except ConnectionResetError:
+            print("A Player has left the game")
+            # If Player 1 leaves, we have to wait for a Player 1 again
             player1_joined = False
+            break
 
 # We should NOT wait for packages for the game to look smooth
 server_socket.setblocking(False)
@@ -132,7 +147,7 @@ latest_server_message = None
 time_since_last_player1_packet = 0
 time_since_last_player2_packet = 0
 
-# Iterations Per Second
+# IPS -> Iterations Per Second
 target_ips = 60
 iteration_time = 1 / target_ips
 last_time = time.perf_counter()
@@ -157,12 +172,12 @@ while running:
     while True:
         # Server Packet Handling
         try:
-            # recieves from client: player_id|player_position_x,player_position_y|packet_number
+            # Receives from Client: player_id|player_position_x,player_position_y|packet_number
             client_message, adress = server_socket.recvfrom(1024)
             client_message = client_message.decode()
 
             if client_message == "Q":
-                # We Stop the game
+                # We Stop the game if "Q" is received, since a Player left
                 send_server_quit_message(
                     server_socket, player1_address, player2_address, goal_manager.get_player_scores())
                 running = False
@@ -179,7 +194,6 @@ while running:
             elif player_id == 2 and (not latest_player2_position_message or client_packet_number > packet_number_p2):
                 latest_player2_position_message = client_message_list[1]
                 packet_number_p2 = client_packet_number
-
         except BlockingIOError:
             break
         except ConnectionResetError:
@@ -202,10 +216,11 @@ while running:
             latest_player1_message_x, latest_player1_message_y)
         player1.set_position(player1_position)
     elif time_since_last_player1_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE:
+        # If we reach here, it means that Player 1 is having some possible connection issues
         if not is_paused:
             pause_game()
     elif time_since_last_player1_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
-        # We Stop the game
+        # If we reach here, we assume Player 1 has lost it's connection to the Server
         send_server_quit_message(
             server_socket,
             player1_address,
@@ -214,7 +229,8 @@ while running:
         )
         running = False
         break
-
+    
+    # Same Thing as above, but with Player 2
     if latest_player2_position_message:
         time_since_last_player2_packet = 0
         latest_player2_message_x = float(
@@ -237,7 +253,7 @@ while running:
         )
         running = False
         break
-        
+
     if is_paused:
         time_since_pause += delta_time
         if time_since_pause >= game_settings.PAUSE_TIME:

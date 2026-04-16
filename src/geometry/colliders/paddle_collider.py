@@ -9,6 +9,9 @@ BALL_IMPACT_X_SPEED = 25
 BALL_IMPACT_Y_SPEED = 7
 
 class PaddleCollider(BoxCollider):
+    """
+        Collider of the Player Paddles
+    """
     def __init__(self, center: Vector2, extents: Vector2):
         super().__init__(center, extents)
 

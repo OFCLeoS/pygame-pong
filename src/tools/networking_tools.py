@@ -7,6 +7,9 @@ from logic.goal_manager import GoalManager
 from logic.shape_game_physics_object import ShapeGamePhysicsObject
 from values import networking_settings
 
+#############################################################################################
+# This file contains various methods to help in the handling of the Game's Networking System
+#############################################################################################
 
 def send_server_message(server_socket: Socket, client1, client2, ball_pos: Vector2, ball_dir: Vector2, player1_pos: Vector2, player2_pos: Vector2, score: Vector2, packet_number: int):
     # Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE|PACKET_NUM
@@ -95,12 +98,3 @@ def process_server_message(message_values: list[str],
         int(float(score_values[0])), int(float(score_values[1])))
     if goal_manager.get_player_scores() != server_scores:
         goal_manager.set_score(server_scores)
-
-
-def handle_client_connection_lost():
-    pass
-
-
-def handle_server_connection_lost():
-    print("Server Is Not Sending Packets")
-    pass

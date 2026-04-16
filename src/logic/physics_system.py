@@ -8,6 +8,9 @@ from logic.shape_game_physics_object import ShapeGamePhysicsObject
 
 
 class PhysicsSystem:
+    """
+        Handles the in-game physics system
+    """
     def __init__(self, inital_colliders: List[BoxCollider] = [], initial_physics_objects: List[ShapeGamePhysicsObject] = []):
         self.colliders = inital_colliders
         self.physics_objects = initial_physics_objects

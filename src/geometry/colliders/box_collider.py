@@ -5,6 +5,9 @@ import threading
 
 
 class BoxCollider(ABC):
+    """
+        Base Collider class for all game colliders.
+    """
     def __init__(self, center: Vector2, extents: Vector2):
         self.active = True
         self.center = center
