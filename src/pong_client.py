@@ -202,9 +202,7 @@ while running:
     # Main Game Loop
     else:
         latest_server_message_values = []
-        print(f"BEFORE: {time_since_last_packet}")
         time_since_last_packet += delta_time
-        print(f"AFTER: {time_since_last_packet}")
         # We drain the buffer and get only the latest package (or Quit if we receive "Q")
         while True:
             try:

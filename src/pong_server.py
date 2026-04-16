@@ -176,7 +176,7 @@ while running:
         # Server Packet Handling
         try:
             # Receives from Client: player_id|player_position_x,player_position_y|packet_number
-            client_message, adress = server_socket.recvfrom(1024)
+            client_message, address = server_socket.recvfrom(1024)
             client_message = client_message.decode()
 
             if client_message == "Q":
@@ -187,7 +187,7 @@ while running:
                 break
             elif client_message == "J":
                 refuse_message = "N"
-                server_socket.send(refuse_message.encode(),adress)
+                server_socket.sendto(refuse_message.encode(),address)
                 continue
 
             client_message_list = client_message.split("|")
