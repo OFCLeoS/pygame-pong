@@ -2,6 +2,9 @@ from pygame import Vector2
 
 
 class GoalManager:
+    """
+        Handles Goals and keeps score of them
+    """
     def __init__(self, player_ids_list: list[int], on_goal_func):
         self.__player_score_dic: dict[int, int] = dict()
         self.on_goal = on_goal_func

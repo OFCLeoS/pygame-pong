@@ -8,6 +8,9 @@ from logic.shape_game_physics_object import ShapeGamePhysicsObject
 
 
 class PhysicsSystem:
+    """
+        Handles the in-game physics system
+    """
     def __init__(self, inital_colliders: List[BoxCollider] = [], initial_physics_objects: List[ShapeGamePhysicsObject] = []):
         self.colliders = inital_colliders
         self.physics_objects = initial_physics_objects
@@ -24,7 +27,6 @@ class PhysicsSystem:
                     # WHEN BALL HITS PADLE -> COLLISION DISABLED ON PADLE
                     break
 
-    # TODO: REFACTOR!
     @staticmethod
     def is_colliding(collider1: BoxCollider, collider2: BoxCollider) -> bool:
         return (

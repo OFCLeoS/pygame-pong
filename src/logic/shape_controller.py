@@ -5,6 +5,9 @@ from geometry.shape import Shape
 
 
 class ShapeController:
+    """
+        ALlows a user to control a shape with their keyboard
+    """
     def __init__(self, shape: Shape, key_to_direction: dict[int, Vector2],min_y_pos: int, max_y_pos: int):
         self.direction = Vector2(0, 0)
         self.shape = shape

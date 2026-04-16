@@ -12,6 +12,9 @@ from logic.goal_manager import GoalManager
 from logic.shape_game_physics_object import ShapeGamePhysicsObject
 from values import game_settings
 
+#########################################################################
+# This file contains various methods to help in the execution of the game
+#########################################################################
 
 def draw_text(screen: Surface, text: str, text_font: Font, x, y):
     txt = text_font.render(text, True, game_settings.SCORE_COLOUR)
@@ -22,7 +25,9 @@ def create_player_1() -> Rectangle:
     player1_collider = PaddleCollider(
         Vector2(game_settings.PLAYER1_STARTING_POS.x+(game_settings.PLAYER_WIDTH/2),
                 game_settings.PLAYER1_STARTING_POS.y+(game_settings.PLAYER_HEIGHT/2)),
-        Vector2(game_settings.PLAYER_WIDTH/2, game_settings.PLAYER_HEIGHT/2))
+        Vector2(game_settings.PLAYER_WIDTH/2,
+                game_settings.PLAYER_HEIGHT/2))
+    
     return Rectangle(
         game_settings.PLAYER_SIZE,
         game_settings.PLAYER1_STARTING_POS,
@@ -194,3 +199,28 @@ def draw_game(screen: Surface,
     # Draw Players
     pygame.draw.rect(screen, player1.colour, player1.rect_like)
     pygame.draw.rect(screen, player2.colour, player2.rect_like)
+
+
+def display_game_result(server_quit_message_values):
+    """
+        Displays the game result in the console
+    """
+    score_values = server_quit_message_values[1].split(",")
+    server_scores = Vector2(
+        int(float(score_values[0])), int(float(score_values[1])))
+
+    print_game_result(int(server_scores.x),int(server_scores.y))
+
+
+def print_game_result(player1_score: int, player2_score: int):
+    """
+        Prints the game result in the console
+    """
+    print()
+    print("\t---------------------------")
+    print("\t --- GAME HAS ENDED ---")
+    print("\t -- Final Score --")
+    print(f"\t - PLAYER 1 (LEFT): {player1_score} -")
+    print(f"\t - PLAYER 2 (RIGHT): {player2_score} -")
+    print("\t---------------------------")
+    print()
