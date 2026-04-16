@@ -8,6 +8,15 @@ from logic.shape_game_physics_object import ShapeGamePhysicsObject
 from values import networking_settings
 
 
+def send_server_message(server_socket: Socket, client1, client2, ball_pos:Vector2,ball_dir:Vector2,player1_pos:Vector2,player2_pos:Vector2, score:Vector2 ,packet_number: int):
+    # Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE|PACKET_NUM
+    """
+        Sends a server message from the provided socket to the provided client
+    """
+    message = f"{ball_pos.x},{ball_pos.y}|{ball_dir.x},{ball_dir.y}|{player1_pos.x},{player1_pos.y}|{player2_pos.x},{player2_pos.y}|{score.x},{score.y}|{packet_number}"
+    server_socket.sendto(message.encode(), client1)
+    server_socket.sendto(message.encode(), client2)
+    
 def send_client_message(client_socket: Socket, server, player_id: int, player_position_x, player_position_y, packet_number: int):
     """
         Sends a client message from the provided socket to the provided server
