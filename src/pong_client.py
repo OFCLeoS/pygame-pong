@@ -157,11 +157,12 @@ def handle_join_phase():
     player1_score = 0
     player2_score = 0
 
+    print("Joined the Server, waiting for Players...")
     # The game will not have started until we start receiving packets, so we just wait for one
     client_socket.recvfrom(1024)
 
     # Game View Setup
-    global running, screen, time_since_last_packet
+    global running, screen, time_since_last_packet,delta_time
     pygame.display.init()
     screen = pygame.display.set_mode((
         game_settings.SCREEN_WIDTH,
@@ -173,6 +174,8 @@ def handle_join_phase():
 
     # We should NOT wait for packages for the game to look smooth
     client_socket.setblocking(False)
+    
+    delta_time = 0
 
 
 #############
@@ -189,6 +192,8 @@ while running:
             try:
                 client_socket.recvfrom(1024)
             except TimeoutError:
+                break
+            except ConnectionResetError:
                 break
         client_socket.settimeout(None)
         handle_join_phase()

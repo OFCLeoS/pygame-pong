@@ -98,6 +98,8 @@ while not server_started:
     except ValueError:
         print("An invalid address was provided")
         continue
+    except OSError:
+        print("The address provided is not valid in its context")
 
     print("Server has Started")
     server_started = True
