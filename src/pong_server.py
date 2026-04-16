@@ -151,7 +151,10 @@ while running:
             client_message=client_message.decode()
             
             if client_message == "Q":
+                # We Stop the game
                 send_server_quit_message(server_socket,player1_address,player2_address,goal_manager.get_player_scores())
+                running = False
+                break
         
             client_message_list=client_message.split("|")
                         
@@ -166,6 +169,11 @@ while running:
                 packet_number_p2=client_packet_number
 
         except BlockingIOError:
+            break
+        except ConnectionResetError:
+            # We Stop the game since one of the players left
+            send_server_quit_message(server_socket,player1_address,player2_address,goal_manager.get_player_scores())
+            running = False
             break
     
     if latest_player1_position_message:
@@ -188,7 +196,6 @@ while running:
     
     send_server_message(server_socket,player1_address,player2_address,ball.shape.get_position(),ball.direction,player1.get_position(),player2.get_position(),goal_manager.get_player_scores(),packet_number_server)
     packet_number_server+=1
-    print(packet_number_server)
     
     elapsed = time.perf_counter() - start_time
     sleep_time = iteration_time - elapsed
