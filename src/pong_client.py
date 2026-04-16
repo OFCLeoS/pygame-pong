@@ -42,6 +42,12 @@ def recenter_game():
     ball.shape.set_position(game_settings.BALL_STARTING_POS)
     player1.set_position(game_settings.PLAYER1_STARTING_POS)
     player2.set_position(game_settings.PLAYER2_STARTING_POS)
+    
+    global goal_manager, player1_score, player2_score
+    
+    scores = goal_manager.get_player_scores()
+    player1_score = scores.x
+    player2_score = scores.y
 
 
 # Goals Setup (No collisions)

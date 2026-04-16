@@ -181,8 +181,8 @@ while running:
         if time_since_pause >= game_settings.PAUSE_TIME:
             time_since_pause = 0
             start_game()
-            
-    physics_system.handle_physics()
+    else: physics_system.handle_physics()
+    
     send_server_message(server_socket,player1_address,player2_address,ball.shape.get_position(),ball.direction,player1.get_position(),player2.get_position(),goal_manager.get_player_scores(),packet_number_server)
     packet_number_server+=1
     print(packet_number_server)
