@@ -2,7 +2,6 @@ import socket
 from socket import socket as Socket
 import random
 import time
-import pygame
 from pygame import Vector2
 
 from logic.goal_manager import GoalManager
@@ -10,10 +9,8 @@ from logic.shape_controller import ShapeController
 from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
-from tools.game_tools import draw_game
-from tools.networking_tools import process_server_message, send_client_message, send_server_message
+from tools.networking_tools import send_server_message
 from values import game_settings
-
 
 player1 = game_tools.create_player_1()
 
@@ -27,6 +24,7 @@ terrain_lines = game_tools.VISUAL_create_terrain_lines()
 wall_top = game_tools.create_top_wall()
 wall_bottom = game_tools.create_bottom_wall()
 
+last_goal_player_id = random.randint(1,2)
 
 def on_goal(last_goal_id: int):
     # TODO: MODIFY THIS FOR CLIENT
@@ -52,13 +50,6 @@ def start_game():
     ball.direction.x = game_settings.BALL_STARTING_X_SPEED if last_goal_player_id % 2 != 0 else - \
         game_settings.BALL_STARTING_X_SPEED
     ball.direction.y = game_settings.BALL_STARTING_Y_SPEED * coefficient
-
-
-def recenter_game():
-    ball.shape.set_position(game_settings.BALL_STARTING_POS)
-    player1.set_position(game_settings.PLAYER1_STARTING_POS)
-    player2.set_position(game_settings.PLAYER2_STARTING_POS)
-
 
 # Goals Setup
 goal_manager = GoalManager(
@@ -122,41 +113,38 @@ while not game_ready:
             server_socket.sendto(str(2).encode(),player2_address )
             game_ready=True
 
-
-
-
-
-
-
 packet_number_p1 = 0
 packet_number_p2 = 0
 packet_number_server=0
 
-
-
-
 # We should NOT wait for packages for the game to look smooth
 server_socket.setblocking(False)
 
+target_fps = 60
+frame_time = 1 / target_fps
+last_time = time.perf_counter()
 
 running = True
 is_paused = False
 time_since_pause = 0
 
-
 #############
 # GAME PHASE
 #############
 latest_server_message = None
+pause_game()
 while running:
+    start_time = time.perf_counter()
+
+    delta_time = start_time - last_time
+    last_time = start_time
+    
     latest_player1_position_message=""
     latest_player2_position_message=""
     # We drain the buffer and get only the latest package
     while True:
-        
         try:
             # recieves from client: player_id|player_position_x,player_position_y|packet_number
-            
             client_message, adress = server_socket.recvfrom(1024)
             client_message=client_message.decode()
             client_message_list=client_message.split("|")
@@ -188,25 +176,23 @@ while running:
         player2_position=Vector2(latest_player2_message_x,latest_player2_message_y)
         player2.set_position(player2_position)
 
-    
-    
-    
-
-
-
-    
     if is_paused:
         time_since_pause += delta_time
-        if time_since_pause >= PAUSE_TIME:
+        if time_since_pause >= game_settings.PAUSE_TIME:
             time_since_pause = 0
-            start_game()  
-            
+            start_game()
             
     physics_system.handle_physics()
     send_server_message(server_socket,player1_address,player2_address,ball.shape.get_position(),ball.direction,player1.get_position(),player2.get_position(),goal_manager.get_player_scores(),packet_number_server)
     packet_number_server+=1
     print(packet_number_server)
-    time.sleep(1/60)
+    
+    elapsed = time.perf_counter() - start_time
+    sleep_time = frame_time - elapsed
+
+    if sleep_time > 0:
+        time.sleep(sleep_time)
+    
 server_socket.close()
 
 
