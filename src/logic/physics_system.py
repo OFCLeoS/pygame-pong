@@ -24,7 +24,6 @@ class PhysicsSystem:
                     # WHEN BALL HITS PADLE -> COLLISION DISABLED ON PADLE
                     break
 
-    # TODO: REFACTOR!
     @staticmethod
     def is_colliding(collider1: BoxCollider, collider2: BoxCollider) -> bool:
         return (

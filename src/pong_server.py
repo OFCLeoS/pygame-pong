@@ -27,7 +27,6 @@ wall_bottom = game_tools.create_bottom_wall()
 last_goal_player_id = random.randint(1,2)
 
 def on_goal(last_goal_id: int):
-    # TODO: MODIFY THIS FOR CLIENT
     global last_goal_player_id
     last_goal_player_id = last_goal_id
     ball.shape.set_position(game_settings.BALL_STARTING_POS)

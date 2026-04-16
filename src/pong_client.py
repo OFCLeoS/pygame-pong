@@ -158,7 +158,6 @@ def handle_join_phase():
     global player1_score, player2_score
     player1_score = 0
     player2_score = 0
-    # TODO: READY MESSAGE
 
 
 #############
