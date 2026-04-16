@@ -266,35 +266,37 @@ while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+            keys = pygame.key.get_pressed()
+            player_controller.handle_movement(keys)
 
-        keys = pygame.key.get_pressed()
-        player_controller.handle_movement(keys)
-
-        if keys[pygame.K_q]:
-            if keys[pygame.K_LCTRL]:
-                running = False
-            joined_game = False
-            pygame.display.quit()
-            quit_message = "Q"
-            client_socket.sendto(quit_message.encode(), server)  # type: ignore
-            print_game_result(player1_score, player2_score)
-            continue
+            if keys[pygame.K_q]:
+                if keys[pygame.K_LCTRL]:
+                    running = False
+                joined_game = False
+                pygame.display.quit()
+                quit_message = "Q"
+                client_socket.sendto(quit_message.encode(), server)  # type: ignore
+                print_game_result(player1_score, player2_score)
+                continue
         
-        # Fill the screen with the colour black, wipes everything from last frame away
-        screen.fill("black")
-        
-        draw_game(
-            screen,
-            player1,
-            player2,
-            ball,
-            terrain_lines,
-            wall_top,
-            wall_bottom,
-            goal_left,
-            goal_right,
-            player1_score, player2_score,
-            text_font)
+            # Fill the screen with the colour black, wipes everything from last frame away
+            screen.fill("black")
+            
+            draw_game(
+                screen,
+                player1,
+                player2,
+                ball,
+                terrain_lines,
+                wall_top,
+                wall_bottom,
+                goal_left,
+                goal_right,
+                player1_score, player2_score,
+                text_font)
+            
+            # Update the contents of the entire display
+            pygame.display.flip()
 
         physics_system.handle_physics()
 
@@ -307,9 +309,6 @@ while running:
             player_position.y,
             packet_number)
         packet_number += 1
-
-        # Update the contents of the entire display
-        pygame.display.flip()
 
         # Limits FPS to 60
         delta_time = clock.tick(60) / 1000
