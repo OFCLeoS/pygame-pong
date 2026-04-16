@@ -46,8 +46,8 @@ def recenter_game():
     global goal_manager, player1_score, player2_score
     
     scores = goal_manager.get_player_scores()
-    player1_score = scores.x
-    player2_score = scores.y
+    player1_score = int(scores.x)
+    player2_score = int(scores.y)
 
 
 # Goals Setup (No collisions)

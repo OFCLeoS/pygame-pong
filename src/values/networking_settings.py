@@ -19,7 +19,7 @@ TIME_WITHOUT_PACKETS_BEFORE_PAUSE = 2
 The maximum squared distance allowed for the ball that a client can have from
 the client ball position to the server ball position before a correction is made
 '''
-ALLOWED_SQUARDED_DISTANCE_ERROR = 500
+ALLOWED_SQUARDED_DISTANCE_ERROR = 1225
 
 '''
 The time a direction can be difference from the server in a client before a correction is made
