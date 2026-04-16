@@ -172,7 +172,7 @@ while running:
         while True:
             try:
                 client_socket.recvfrom(1024)
-            except BlockingIOError:
+            except TimeoutError:
                 break
         client_socket.settimeout(None)
         handle_join_phase()
