@@ -8,7 +8,7 @@ from logic.shape_game_physics_object import ShapeGamePhysicsObject
 from values import networking_settings
 
 
-def send_server_message(server_socket: Socket, client1, client2, ball_pos:Vector2,ball_dir:Vector2,player1_pos:Vector2,player2_pos:Vector2, score:Vector2 ,packet_number: int):
+def send_server_message(server_socket: Socket, client1, client2, ball_pos: Vector2, ball_dir: Vector2, player1_pos: Vector2, player2_pos: Vector2, score: Vector2, packet_number: int):
     # Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE|PACKET_NUM
     """
         Sends a server message from the provided socket to the provided client
@@ -16,7 +16,18 @@ def send_server_message(server_socket: Socket, client1, client2, ball_pos:Vector
     message = f"{ball_pos.x},{ball_pos.y}|{ball_dir.x},{ball_dir.y}|{player1_pos.x},{player1_pos.y}|{player2_pos.x},{player2_pos.y}|{score.x},{score.y}|{packet_number}"
     server_socket.sendto(message.encode(), client1)
     server_socket.sendto(message.encode(), client2)
-    
+
+
+def send_server_quit_message(server_socket: Socket, client1, client2, score: Vector2):
+    # Message is formatted as follows: Q|SCORE
+    """
+        Sends a server quit message from the provided socket to the provided client
+    """
+    message = f"Q|{score.x},{score.y}"
+    server_socket.sendto(message.encode(), client1)
+    server_socket.sendto(message.encode(), client2)
+
+
 def send_client_message(client_socket: Socket, server, player_id: int, player_position_x, player_position_y, packet_number: int):
     """
         Sends a client message from the provided socket to the provided server
@@ -56,23 +67,15 @@ def process_server_message(message_values: list[str],
         float(ball_position_values[1])
     )
 
-    if ball.direction.x == 0 and ball.direction.y == 0:
+    ball_direction_values = message_values[1].split(",")
+    server_ball_direction = Vector2(
+        float(ball_direction_values[0]),
+        float(ball_direction_values[1])
+    )
+
+    if (ball.direction.x == 0 and ball.direction.y == 0) or (time_since_different_ball_dir > networking_settings.ALLOWED_DIRECTION_ERROR_TIME) or (Vector2.magnitude_squared(ball.shape.get_position() - server_ball_position) >= networking_settings.ALLOWED_SQUARDED_DISTANCE_ERROR):
         # BALL DIRECTION AND POSITION SYNCING
-        ball_direction_values = message_values[1].split(",")
-        server_ball_direction = Vector2(
-            float(ball_direction_values[0]), float(ball_direction_values[1]))
         ball.direction = server_ball_direction
-        ball.shape.set_position(server_ball_position)
-    elif time_since_different_ball_dir > networking_settings.ALLOWED_DIRECTION_ERROR_TIME:
-        print("DIR CHANGED")
-        # BALL DIRECTION AND POSITION SYNCING
-        ball_direction_values = message_values[1].split(",")
-        server_ball_direction = Vector2(
-            float(ball_direction_values[0]), float(ball_direction_values[1]))
-        ball.direction = server_ball_direction
-        ball.shape.set_position(server_ball_position)
-    elif Vector2.magnitude_squared(ball.shape.get_position() - server_ball_position) >= networking_settings.ALLOWED_SQUARDED_DISTANCE_ERROR:
-        # BALL POSITION SYNCING
         ball.shape.set_position(server_ball_position)
 
     # PLAYER POSITION SYNCING
@@ -88,7 +91,8 @@ def process_server_message(message_values: list[str],
         player1.set_position(server_player1_pos)
 
     score_values = message_values[4].split(",")
-    server_scores = Vector2(int(float(score_values[0])), int(float(score_values[1])))
+    server_scores = Vector2(
+        int(float(score_values[0])), int(float(score_values[1])))
     if goal_manager.get_player_scores() != server_scores:
         goal_manager.set_score(server_scores)
 

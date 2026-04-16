@@ -9,7 +9,7 @@ from logic.shape_controller import ShapeController
 from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
-from tools.networking_tools import send_server_message
+from tools.networking_tools import send_server_message, send_server_quit_message
 from values import game_settings
 
 player1 = game_tools.create_player_1()
@@ -145,13 +145,17 @@ while running:
     latest_player2_position_message = None
     # We drain the buffer and get only the latest package
     while True:
+        # Server Packet Handling
         try:
             # recieves from client: player_id|player_position_x,player_position_y|packet_number
             client_message, adress = server_socket.recvfrom(1024)
             client_message=client_message.decode()
             
+            if client_message == "Q":
+                send_server_quit_message(server_socket,player1_address,player2_address,goal_manager.get_player_scores())
+        
             client_message_list=client_message.split("|")
-            
+                        
             player_id=int(client_message_list[0])
             client_packet_number=int(client_message[2])
             

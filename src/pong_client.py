@@ -9,7 +9,7 @@ from logic.shape_controller import ShapeController
 from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
-from tools.game_tools import draw_game
+from tools.game_tools import display_game_result, draw_game
 from tools.networking_tools import handle_server_connection_lost, process_server_message, send_client_message
 from values import game_settings
 from values import networking_settings
@@ -39,13 +39,13 @@ time_since_different_ball_dir = 0
 
 
 def CLIENT_on_goal():
-    ball.direction = Vector2(0,0)
+    ball.direction = Vector2(0, 0)
     ball.shape.set_position(game_settings.BALL_STARTING_POS)
     player1.set_position(game_settings.PLAYER1_STARTING_POS)
     player2.set_position(game_settings.PLAYER2_STARTING_POS)
-    
+
     global goal_manager, player1_score, player2_score
-    
+
     scores = goal_manager.get_player_scores()
     player1_score = int(scores.x)
     player2_score = int(scores.y)
@@ -96,30 +96,41 @@ def handle_join_phase():
             print("Invalid port was provided")
             continue
 
+        number_of_tries = 0
+        client_socket.settimeout(1)
         # We send a Join Request (J) to the Server
         message = "J"
-        client_socket.sendto(message.encode(), server)
-        try:
-            data, _ = client_socket.recvfrom(1024)
-            data = data.decode()
-            if data == "N":
-                print("This Server is Full.")
-            # We should have gotten an ID back at this point
-            elif data == "1":
-                player_id = 1
-                player = player1
-                joined_game = True
-            elif data == "2":
-                player_id = 2
-                player = player2
-                joined_game = True
-            else:
-                print(f"Invalid Packet Received: {data}")
+        message = message.encode()
+        while number_of_tries <= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST and not joined_game:
+            number_of_tries += 1
+            client_socket.sendto(message, server)
+            try:
+                data, _ = client_socket.recvfrom(1024)
+                data = data.decode()
+                if data == "N":
+                    print("This Server is Full.")
+                    break
+                # We should have gotten an ID back at this point
+                elif data == "1":
+                    player_id = 1
+                    player = player1
+                    joined_game = True
+                elif data == "2":
+                    player_id = 2
+                    player = player2
+                    joined_game = True
+                else:
+                    print(f"Invalid Packet Received: {data}")
+                    break
+            except ConnectionResetError:
+                print("ConnectionResetError (Server was probably not found)")
+                break
+            except socket.timeout:
+                print("HIIIIII")
                 continue
-        except ConnectionResetError:
-            print("ConnectionResetError (Server was probably not found)")
-            continue
+        print("Connection to the Server could not be established!!!!!!!!!!!!!!")
 
+    client_socket.settimeout(None)
     packet_number = 0
 
     player_controller = ShapeController(
@@ -172,6 +183,12 @@ while running:
             try:
                 server_message, _ = client_socket.recvfrom(1024)
                 message_values = server_message.decode().split("|")
+                
+                if message_values[0] == "Q":
+                    display_game_result(message_values)
+                    joined_game = False
+                    pygame.display.quit()
+                    break
 
                 # Index 5 is packet num
                 if not latest_server_message_values or message_values[5] > latest_server_message_values[5]:

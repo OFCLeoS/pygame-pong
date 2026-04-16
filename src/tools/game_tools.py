@@ -194,3 +194,21 @@ def draw_game(screen: Surface,
     # Draw Players
     pygame.draw.rect(screen, player1.colour, player1.rect_like)
     pygame.draw.rect(screen, player2.colour, player2.rect_like)
+
+
+def display_game_result(server_quit_message_values):
+    """
+        Displays the game result in the console
+    """
+    score_values = server_quit_message_values[1].split(",")
+    server_scores = Vector2(
+        int(float(score_values[0])), int(float(score_values[1])))
+    
+    print()
+    print("---------------------------")
+    print("---GAME HAS ENDED---")
+    print("--Final Score:--")
+    print(f"-PLAYER 1 (LEFT): {server_scores.x}-")
+    print(f"-PLAYER 2 (RIGHT): {server_scores.y}-")
+    print("---------------------------")
+    print()
