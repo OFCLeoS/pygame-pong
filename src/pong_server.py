@@ -91,7 +91,11 @@ while True:
                 elif client_message[0] == "J":
                     refuse_entry_message = "N"
                     server_socket.sendto(refuse_entry_message.encode(), address)
-
+            if num == 0:
+                print("Message from: " + str(address))
+                print("Received : ")
+                print(client_message)
+            num = (num+1) % 100
         except BlockingIOError:
             break
 
@@ -105,11 +109,6 @@ while True:
     game_state_message = game_state_message.encode()
     server_socket.sendto(game_state_message, player1_address)  # type: ignore
     server_socket.sendto(game_state_message, player2_address)  # type: ignore
-    if num == 0:
-        print("Message from: " + str(address))
-        print("Received : ")
-        print(message)
-    num = (num+1) % 100
     time.sleep(1/60)
 
 server_socket.close()

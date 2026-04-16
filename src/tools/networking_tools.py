@@ -3,6 +3,9 @@ from socket import socket as Socket
 from pygame import Vector2
 
 from geometry.rectangle import Rectangle
+from logic.goal_manager import GoalManager
+from logic.shape_game_physics_object import ShapeGamePhysicsObject
+from values import networking_settings
 
 
 def send_client_message(client_socket: Socket, server, player_id: int, player_position_x, player_position_y, packet_number: int):
@@ -13,7 +16,14 @@ def send_client_message(client_socket: Socket, server, player_id: int, player_po
     client_socket.sendto(message.encode(), server)
 
 
-def process_server_message(message_values: list[str], player_id: int, player1: Rectangle, player2: Rectangle):
+def process_server_message(message_values: list[str],
+                           player_id: int,
+                           player1: Rectangle,
+                           player2: Rectangle,
+                           ball: ShapeGamePhysicsObject,
+                           time_since_different_ball_dir: float,
+                           goal_manager: GoalManager
+                           ):
     """
         Processes the server message and acts accordingly:
             - Sets the other player's position
@@ -25,34 +35,58 @@ def process_server_message(message_values: list[str], player_id: int, player1: R
             - The ID of the player that is receiving the packet
             - Player 1 Object
             - Player 2 Object
+            - Ball Object
+            - The time since the Client's ball direction has been different from the Server's
+            - The Goal Manager
     """
 
     # Message is formatted as follows: BALL_POS|BALL_DIR|PLAYER1_POS|PLAYER2_POS|SCORE|PACKET_NUM
-
     ball_position_values = message_values[0].split(",")
-    ball_position = Vector2(
-        float(ball_position_values[0]), float(ball_position_values[1]))
+    server_ball_position = Vector2(
+        float(ball_position_values[0]),
+        float(ball_position_values[1])
+    )
 
-    ball_direction_values = message_values[1].split(",")
-    ball_direction = Vector2(
-        float(ball_direction_values[0]), float(ball_direction_values[1]))
+    if ball.direction.x == 0 and ball.direction.y == 0:
+        # BALL DIRECTION AND POSITION SYNCING
+        ball_direction_values = message_values[1].split(",")
+        server_ball_direction = Vector2(
+            float(ball_direction_values[0]), float(ball_direction_values[1]))
+        ball.direction = server_ball_direction
+        ball.shape.set_position(server_ball_position)
+    elif time_since_different_ball_dir > networking_settings.ALLOWED_DIRECTION_ERROR_TIME:
+        # BALL DIRECTION AND POSITION SYNCING
+        ball_direction_values = message_values[1].split(",")
+        server_ball_direction = Vector2(
+            float(ball_direction_values[0]), float(ball_direction_values[1]))
+        ball.direction = server_ball_direction
+        ball.shape.set_position(server_ball_position)
+    elif Vector2.magnitude_squared(ball.shape.get_position() - server_ball_position) >= networking_settings.ALLOWED_SQUARDED_DISTANCE_ERROR:
+        # BALL POSITION SYNCING
+        ball.shape.set_position(server_ball_position)
 
+    # PLAYER POSITION SYNCING
     if player_id == 1:
         player2_pos_values = message_values[3].split(",")
-        player2_pos = Vector2(
+        server_player2_pos = Vector2(
             float(player2_pos_values[0]), float(player2_pos_values[1]))
-        player2.set_position(player2_pos)
+        player2.set_position(server_player2_pos)
     else:
         player1_pos_values = message_values[2].split(",")
-        player1_pos = Vector2(
+        server_player1_pos = Vector2(
             float(player1_pos_values[0]), float(player1_pos_values[1]))
-        player1.set_position(player1_pos)
+        player1.set_position(server_player1_pos)
 
-    # TODO: HANDLE SCORE AND PACKET_NUM AND CORRECTIONS!!! (0 ball -> immidiate correction)
+    score_values = message_values[4].split(",")
+    server_scores = Vector2(int(score_values[0]), int(score_values[1]))
+    if goal_manager.get_player_scores() != server_scores:
+        goal_manager.set_score(server_scores)
 
 
 def handle_client_connection_lost():
     pass
 
+
 def handle_server_connection_lost():
+    print("Server Is Not Sending Packets")
     pass

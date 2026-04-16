@@ -14,6 +14,11 @@ from tools.networking_tools import handle_server_connection_lost, process_server
 from values import game_settings
 from values import networking_settings
 
+pygame.init()
+text_font = pygame.font.SysFont("Courier New", game_settings.SCORE_SIZE)
+clock = pygame.time.Clock()
+delta_time = 0
+pygame.display.quit()
 
 player1 = game_tools.create_player_1()
 
@@ -27,31 +32,7 @@ terrain_lines = game_tools.VISUAL_create_terrain_lines()
 wall_top = game_tools.create_top_wall()
 wall_bottom = game_tools.create_bottom_wall()
 
-
-def on_goal(last_goal_id: int):
-    # TODO: MODIFY THIS FOR CLIENT
-    global last_goal_player_id
-    last_goal_player_id = last_goal_id
-    ball.shape.set_position(game_settings.BALL_STARTING_POS)
-    player1.set_position(game_settings.PLAYER1_STARTING_POS)
-    player2.set_position(game_settings.PLAYER2_STARTING_POS)
-    pause_game()
-
-
-def pause_game():
-    global is_paused
-    is_paused = True
-    ball.direction.x = 0
-    ball.direction.y = 0
-
-
-def start_game():
-    global is_paused
-    is_paused = False
-    coefficient = random.uniform(-1, 1)
-    ball.direction.x = game_settings.BALL_STARTING_X_SPEED if last_goal_player_id % 2 != 0 else - \
-        game_settings.BALL_STARTING_X_SPEED
-    ball.direction.y = game_settings.BALL_STARTING_Y_SPEED * coefficient
+time_since_different_ball_dir = 0
 
 
 def recenter_game():
@@ -60,10 +41,10 @@ def recenter_game():
     player2.set_position(game_settings.PLAYER2_STARTING_POS)
 
 
-# Goals Setup
+# Goals Setup (No collisions)
 goal_manager = GoalManager(
     [game_settings.PLAYER1_ID, game_settings.PLAYER2_ID],
-    on_goal)
+    recenter_game)
 
 goal_left = game_tools.create_left_goal(goal_manager)
 goal_right = game_tools.create_right_goal(goal_manager)
@@ -76,17 +57,19 @@ physics_system = PhysicsSystem(
         ball.shape.collider,
         wall_top.collider,
         wall_bottom.collider,
-        goal_left.collider,
-        goal_right.collider
+        # Goals are decided by the Server!
+        # goal_left.collider,
+        # goal_right.collider
     ],
     [ball])
 
 client_socket = Socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
+
 def handle_join_phase():
     global joined_game, server, packet_number, player, player_id, player_controller
     joined_game = False
-    
+
     client_socket.setblocking(True)
     server = None
     while not joined_game:
@@ -109,26 +92,25 @@ def handle_join_phase():
         try:
             data, _ = client_socket.recvfrom(1024)
             data = data.decode()
+            if data == "N":
+                print("This Server is Full.")
+            # We should have gotten an ID back at this point
+            elif data == "1":
+                player_id = 1
+                player = player1
+                joined_game = True
+            elif data == "2":
+                player_id = 2
+                player = player2
+                joined_game = True
+            else:
+                print(f"Invalid Packet Received: {data}")
+                continue
         except ConnectionResetError:
             print("ConnectionResetError (Server was probably not found)")
             continue
 
-        # If the game is
-        if data == "N":
-            print("This Server is Full.")
-        else:
-            joined_game = True
-
     packet_number = 0
-
-    # We should have gotten an ID back at this point
-    player_id = 0
-    if data == "1":
-        player_id = 1
-        player = player1
-    else:
-        player_id = 2
-        player = player2
 
     player_controller = ShapeController(
         player,
@@ -141,31 +123,36 @@ def handle_join_phase():
 
     # We should NOT wait for packages for the game to look smooth
     client_socket.setblocking(False)
+
     # Game Setup
-    global text_font, screen, clock, running, delta_time, latest_server_message_values, time_since_last_packet
-    pygame.init()
-    text_font = pygame.font.SysFont("Courier New", game_settings.SCORE_SIZE)
-    screen = pygame.display.set_mode(
-        (game_settings.SCREEN_WIDTH,
-         game_settings.SCREEN_HEIGHT))
-    clock = pygame.time.Clock()
-    delta_time: float = 0
-    
-    latest_server_message_values: list[str] = []
-    time_since_last_packet: float = 0
+    global running, screen, time_since_last_packet
+    pygame.display.init()
+    screen = pygame.display.set_mode((
+        game_settings.SCREEN_WIDTH,
+        game_settings.SCREEN_HEIGHT
+    ))
     running = True
-    
+    time_since_last_packet = 0
+    # TODO: READY MESSAGE
+
 
 #############
 # GAME PHASE
 #############
-handle_join_phase() # Just to be 100% sure this runs atleast onece
+handle_join_phase()  # Just to be 100% sure this runs atleast onece
 while running:
     if not joined_game:
+        # We first dump all packets that we may have received
+        while True:
+            try:
+                client_socket.recvfrom(1024)
+            except BlockingIOError:
+                break
         handle_join_phase()
     # Main Game Loop
     else:
-        time_since_last_packet += delta_time # type: ignore
+        latest_server_message_values = []
+        time_since_last_packet += delta_time  # type: ignore
         # We drain the buffer and get only the latest package
         while True:
             try:
@@ -173,7 +160,7 @@ while running:
                 message_values = server_message.decode().split("|")
 
                 # Index 5 is packet num
-                if message_values[5] > latest_server_message_values[5]:
+                if not latest_server_message_values or message_values[5] > latest_server_message_values[5]:
                     latest_server_message_values = message_values
             except BlockingIOError:
                 break
@@ -181,11 +168,26 @@ while running:
         # If we received a package during this tick, process it
         if latest_server_message_values:
             time_since_last_packet = 0
+
+            ball_direction_values = latest_server_message_values[1].split(",")
+            ball_direction = Vector2(
+                float(ball_direction_values[0]), float(ball_direction_values[1]))
+
+            if ball_direction != ball.direction:
+                time_since_different_ball_dir += delta_time
+            else:
+                time_since_different_ball_dir = 0
+
             process_server_message(
                 latest_server_message_values,
                 player_id,
                 player1,
-                player2)
+                player2,
+                ball,
+                time_since_different_ball_dir,
+                goal_manager
+            )
+
         elif time_since_last_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_ACTION:
             handle_server_connection_lost()
 
@@ -205,7 +207,9 @@ while running:
             if keys[pygame.K_LCTRL]:
                 running = False
             joined_game = False
-            pygame.quit()
+            pygame.display.quit()
+            quit_message = "Q"
+            client_socket.sendto(quit_message.encode(), server)  # type: ignore
             continue
 
         draw_game(

@@ -196,12 +196,12 @@ def draw_game():
     for line in terrain_lines:
         pygame.draw.rect(screen, TERRAIN_COLOUR, line)
     # Draw Score
-    player1_score = str(goal_manager.get_player_score(PLAYER1_ID))
-    player2_score = str(goal_manager.get_player_score(PLAYER2_ID))
+    # player1_score = str(goal_manager.get_player_score(PLAYER1_ID))
+    # player2_score = str(goal_manager.get_player_score(PLAYER2_ID))
 
-    draw_text(player1_score, screen.get_width()/3.9, screen.get_height()/15)
-    draw_text(player2_score, (screen.get_width()-(text_font.size(player2_score)[0])) -
-              (screen.get_width()/3.9), screen.get_height()/15)
+    # draw_text(player1_score, screen.get_width()/3.9, screen.get_height()/15)
+    # draw_text(player2_score, (screen.get_width()-(text_font.size(player2_score)[0])) -
+    #           (screen.get_width()/3.9), screen.get_height()/15)
 
     # Draw Walls
     pygame.draw.rect(screen, wall_top.colour, wall_top.rect_like)
