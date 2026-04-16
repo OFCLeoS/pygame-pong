@@ -162,7 +162,7 @@ def handle_join_phase():
     client_socket.recvfrom(1024)
 
     # Game View Setup
-    global running, screen, time_since_last_packet,delta_time
+    global running, screen, time_since_last_packet, delta_time
     pygame.display.init()
     screen = pygame.display.set_mode((
         game_settings.SCREEN_WIDTH,
@@ -174,7 +174,8 @@ def handle_join_phase():
 
     # We should NOT wait for packages for the game to look smooth
     client_socket.setblocking(False)
-    
+
+    clock.tick()
     delta_time = 0
 
 

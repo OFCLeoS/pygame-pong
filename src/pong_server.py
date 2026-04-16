@@ -100,6 +100,7 @@ while not server_started:
         continue
     except OSError:
         print("The address provided is not valid in its context")
+        continue
 
     print("Server has Started")
     server_started = True
