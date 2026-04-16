@@ -135,6 +135,7 @@ def handle_join_phase():
                 print("ConnectionResetError (Server was probably not found)")
                 break
             except socket.timeout:
+                print("...")
                 continue
         if number_of_tries > networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
             print("Connection to the Server could not be established")
