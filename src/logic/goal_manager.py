@@ -19,17 +19,16 @@ class GoalManager:
 
     def get_player_scores(self) -> Vector2:
         return Vector2(self.__player_score_dic[1], self.__player_score_dic[2])
-
-    #################
-    #
-    #################
-
-    @DeprecationWarning
+    
     def score(self, player_id: int):
         if player_id not in self.__player_score_dic:
             self.__player_score_dic[player_id] = 0
         self.__player_score_dic[player_id] += 1
         self.on_goal(player_id)
+        
+    #################
+    #
+    #################
 
     @DeprecationWarning
     def get_player_score(self, player_id: int) -> int:
