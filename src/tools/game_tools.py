@@ -203,12 +203,19 @@ def display_game_result(server_quit_message_values):
     score_values = server_quit_message_values[1].split(",")
     server_scores = Vector2(
         int(float(score_values[0])), int(float(score_values[1])))
-    
+
+    print_game_result(int(server_scores.x),int(server_scores.y))
+
+
+def print_game_result(player1_score: int, player2_score: int):
+    """
+        Prints the game result in the console
+    """
     print()
     print("---------------------------")
     print("---GAME HAS ENDED---")
     print("--Final Score:--")
-    print(f"-PLAYER 1 (LEFT): {int(server_scores.x)}-")
-    print(f"-PLAYER 2 (RIGHT): {int(server_scores.y)}-")
+    print(f"- PLAYER 1 (LEFT): {player1_score} -")
+    print(f"- PLAYER 2 (RIGHT): {player2_score} -")
     print("---------------------------")
     print()

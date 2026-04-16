@@ -9,7 +9,7 @@ from logic.shape_controller import ShapeController
 from logic.physics_system import PhysicsSystem
 
 from tools import game_tools
-from tools.game_tools import display_game_result, draw_game
+from tools.game_tools import display_game_result, draw_game, print_game_result
 from tools.networking_tools import handle_server_connection_lost, process_server_message, send_client_message
 from values import game_settings
 from values import networking_settings
@@ -75,7 +75,6 @@ physics_system = PhysicsSystem(
 
 client_socket = Socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-
 def handle_join_phase():
     global joined_game, server, packet_number, player, player_id, player_controller
     joined_game = False
@@ -84,7 +83,7 @@ def handle_join_phase():
     server = None
     while not joined_game:
         # We ask the User for the server Address
-        host = input(" Server IP (or \"q\" to quit) -> ")
+        host = input(" Server IP (or \"q\" to quit) -> ").lower
         if host == "q":
             print("Quitting...")
             client_socket.close()
@@ -126,9 +125,9 @@ def handle_join_phase():
                 print("ConnectionResetError (Server was probably not found)")
                 break
             except socket.timeout:
-                print("HIIIIII")
                 continue
-        print("Connection to the Server could not be established")
+        if not joined_game:
+            print("Connection to the Server could not be established")
 
     client_socket.settimeout(None)
     packet_number = 0
@@ -189,6 +188,7 @@ while running:
                 if message_values and message_values[0] == "Q":
                     display_game_result(message_values)
                     joined_game = False
+                    running = False
                     pygame.display.quit()
                     break
 
@@ -197,7 +197,10 @@ while running:
                     latest_server_message_values = message_values
             except BlockingIOError:
                 break
-
+            
+        # We could have received a "Q" message
+        if not running: break
+        
         # If we received a package during this tick, process it
         if latest_server_message_values:
             time_since_last_packet = 0
@@ -245,6 +248,7 @@ while running:
             pygame.display.quit()
             quit_message = "Q"
             client_socket.sendto(quit_message.encode(), server)  # type: ignore
+            print_game_result(player1_score,player2_score)
             continue
 
         draw_game(
