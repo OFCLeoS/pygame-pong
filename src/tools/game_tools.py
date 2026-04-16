@@ -172,7 +172,7 @@ def draw_game(screen: Surface,
 
     draw_text(
         screen,
-        str(player1_score),
+        str(player2_score),
         text_font,
         (screen.get_width()-(text_font.size(str(player1_score))
          [0])) - (screen.get_width()/3.9),

@@ -20,6 +20,9 @@ clock = pygame.time.Clock()
 delta_time = 0
 pygame.display.quit()
 
+player1_score = 0
+player2_score = 0
+
 player1 = game_tools.create_player_1()
 
 player2 = game_tools.create_player_2()
@@ -133,6 +136,10 @@ def handle_join_phase():
     ))
     running = True
     time_since_last_packet = 0
+
+    global player1_score, player2_score
+    player1_score = 0
+    player2_score = 0
     # TODO: READY MESSAGE
 
 
@@ -222,7 +229,7 @@ while running:
             wall_bottom,
             goal_left,
             goal_right,
-            0, 0,  # TODO: SCORE
+            player1_score, player2_score,
             text_font)
 
         physics_system.handle_physics()
@@ -248,7 +255,7 @@ client_socket.close()
 
 # NETWORKING ARCHITECTURE
 # UDP
-# - Timestamped packages 
+# - Timestamped packages
 # Server-Client Structure
 # - One player's machine is the Structure
 # Server sends players
