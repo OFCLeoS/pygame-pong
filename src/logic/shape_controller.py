@@ -18,6 +18,7 @@ class ShapeController:
     def handle_movement(self, keys_pressed: ScancodeWrapper,delta_time):
         for key in self.key_to_direction:
             if keys_pressed[key]:
+                # We multiply by dt so the speed of iterations dont affect the player speed
                 new_position = self.shape.get_position() + (self.key_to_direction[key]*delta_time)
                 
                 if new_position.y > self.max_y_pos:

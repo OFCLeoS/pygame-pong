@@ -10,4 +10,5 @@ class ShapeGamePhysicsObject:
 
     def tick(self,delta_time):
         last_shape_position = self.shape.get_position()
+        # We multiply by dt so the speed of iterations dont affect the object speed
         self.shape.set_position(last_shape_position+(self.direction*delta_time))
