@@ -4,9 +4,9 @@ from pygame import Vector2
 
 
 
-MAX_Y_DIRECTION = 15
-BALL_IMPACT_X_SPEED = 25
-BALL_IMPACT_Y_SPEED = 7
+MAX_Y_DIRECTION = 150
+BALL_IMPACT_X_SPEED = 250
+BALL_IMPACT_Y_SPEED = 70
 
 class PaddleCollider(BoxCollider):
     """
