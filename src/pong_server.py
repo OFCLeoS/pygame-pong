@@ -227,7 +227,8 @@ while running:
         if not is_paused:
             pause_game()
     elif time_since_last_player1_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
-        # If we reach here, we assume Player 1 has lost it's connection to the Server
+        # If we reach here, we assume Player 1 has lost its connection to the Server
+        print("Player 1 has lost its connection to the Server...")
         send_server_quit_message(
             server_socket,
             player1_address,
@@ -252,6 +253,7 @@ while running:
             pause_game()
     elif time_since_last_player2_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
         # We Stop the game
+        print("Player 2 has lost its connection to the Server...")
         send_server_quit_message(
             server_socket,
             player1_address,
