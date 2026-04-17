@@ -263,11 +263,11 @@ while running:
 
     if is_paused:
         time_since_pause += delta_time
-        if time_since_pause >= game_settings.PAUSE_TIME:
+        if time_since_pause >= game_settings.PAUSE_TIME and time_since_last_player1_packet < networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE and time_since_last_player2_packet < networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE:
             time_since_pause = 0
             start_game()
     else:
-        physics_system.handle_physics()
+        physics_system.handle_physics(delta_time)
 
     send_server_message(
         server_socket,

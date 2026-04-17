@@ -15,9 +15,9 @@ class PhysicsSystem:
         self.colliders = inital_colliders
         self.physics_objects = initial_physics_objects
 
-    def handle_physics(self):
+    def handle_physics(self,delta_time):
         for physics_object in self.physics_objects:
-            physics_object.tick()
+            physics_object.tick(delta_time)
             object_collider = physics_object.shape.collider
             for collider in self.colliders:
                 # Physics Object cannot collide with itself

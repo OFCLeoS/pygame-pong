@@ -259,7 +259,6 @@ while running:
             joined_game = False
             pygame.display.quit()
             print("Server Connection was Lost.")
-            print(f"TIM: {time_since_last_packet}")
 
             # We send a "Q" message in-case the server is still listening
             quit_message = "Q"
@@ -275,7 +274,7 @@ while running:
                 if event.type == pygame.QUIT:
                     running = False
             keys = pygame.key.get_pressed()
-            player_controller.handle_movement(keys)
+            player_controller.handle_movement(keys,delta_time)
 
             if keys[pygame.K_q]:
                 if keys[pygame.K_LCTRL]:
@@ -307,7 +306,7 @@ while running:
             # Update the contents of the entire display
             pygame.display.flip()
 
-        physics_system.handle_physics()
+        physics_system.handle_physics(delta_time)
 
         player_position = player.get_position()  # type: ignore
         send_client_message(

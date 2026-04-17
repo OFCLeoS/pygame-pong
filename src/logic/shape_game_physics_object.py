@@ -8,6 +8,6 @@ class ShapeGamePhysicsObject:
         self.shape = shape
         self.direction = direction
 
-    def tick(self):
+    def tick(self,delta_time):
         last_shape_position = self.shape.get_position()
-        self.shape.set_position(last_shape_position+self.direction)
+        self.shape.set_position(last_shape_position+(self.direction*delta_time))

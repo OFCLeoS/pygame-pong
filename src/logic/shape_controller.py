@@ -15,10 +15,10 @@ class ShapeController:
         self.min_y_pos = min_y_pos
         self.max_y_pos = max_y_pos
 
-    def handle_movement(self, keys_pressed: ScancodeWrapper):
+    def handle_movement(self, keys_pressed: ScancodeWrapper,delta_time):
         for key in self.key_to_direction:
             if keys_pressed[key]:
-                new_position = self.shape.get_position() + self.key_to_direction[key]
+                new_position = self.shape.get_position() + (self.key_to_direction[key]*delta_time)
                 
                 if new_position.y > self.max_y_pos:
                     new_position.y = self.max_y_pos
