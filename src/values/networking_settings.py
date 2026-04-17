@@ -27,7 +27,7 @@ The maximum squared distance allowed for the ball that a client can have from
 the client ball position to the server ball position before a correction is made
 '''
 
-ALLOWED_DIRECTION_ERROR_TIME  = 0.1
+ALLOWED_DIRECTION_ERROR_TIME  = 0.039
 '''
 The time a direction can be difference from the server in a client before a correction is made
 '''
