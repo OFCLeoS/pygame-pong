@@ -222,10 +222,6 @@ while running:
         player1_position = Vector2(
             latest_player1_message_x, latest_player1_message_y)
         player1.set_position(player1_position)
-    elif time_since_last_player1_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE:
-        # If we reach here, it means that Player 1 is having some possible connection issues
-        if not is_paused:
-            pause_game()
     elif time_since_last_player1_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
         # If we reach here, we assume Player 1 has lost its connection to the Server
         print("Player 1 has lost its connection to the Server...")
@@ -237,6 +233,10 @@ while running:
         )
         running = False
         break
+    elif time_since_last_player1_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE:
+        # If we reach here, it means that Player 1 is having some possible connection issues
+        if not is_paused:
+            pause_game()
     
     # Same Thing as above, but with Player 2
     if latest_player2_position_message:
@@ -248,9 +248,6 @@ while running:
         player2_position = Vector2(
             latest_player2_message_x, latest_player2_message_y)
         player2.set_position(player2_position)
-    elif time_since_last_player2_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE:
-        if not is_paused:
-            pause_game()
     elif time_since_last_player2_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_CONNECTION_LOST:
         # We Stop the game
         print("Player 2 has lost its connection to the Server...")
@@ -262,6 +259,9 @@ while running:
         )
         running = False
         break
+    elif time_since_last_player2_packet >= networking_settings.TIME_WITHOUT_PACKETS_BEFORE_PAUSE:
+        if not is_paused:
+            pause_game()
 
     if is_paused:
         time_since_pause += delta_time
