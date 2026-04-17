@@ -164,6 +164,7 @@ def handle_join_phase():
     # Game View Setup
     global running, screen, time_since_last_packet, delta_time
     pygame.display.init()
+    pygame.display.set_caption("Infinite Pong")
     screen = pygame.display.set_mode((
         game_settings.SCREEN_WIDTH,
         game_settings.SCREEN_HEIGHT
