@@ -1,10 +1,8 @@
 # Overview
 Two-player networked Pong built from scratch in Python using Pygame-CE and UDP sockets.
 
-The game follows the classical rules of Pong but runs until a player leaves.
-Players control one paddle each. They must stop the ball from entering in their goal, but must
-make the ball enter the other player’s goal.
-Hitting a goal with the ball gives a point to the player opposite of the goal.
+The game follows the classical rules of Pong but runs until a player leaves. Players control one paddle each. They must stop the ball from entering in their goal, but must
+make the ball enter the other player’s goal. Hitting a goal with the ball gives a point to the player opposite of the goal.
 
 # Requirements
 - python 3.14+
