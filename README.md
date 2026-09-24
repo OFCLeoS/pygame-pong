@@ -1,5 +1,5 @@
 # Overview
-A multiplayer 2-player game of Infinite Pong. It follows the classical rules of Pong but runs until a
+A 2-player multiplayer game of Infinite Pong. It follows the classical rules of Pong but runs until a
 player leaves.
 
 Players control one paddle each. They must stop the ball from entering in their goal, but must
