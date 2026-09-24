@@ -1,6 +1,6 @@
 # Overview
-A 2-player multiplayer game of Infinite Pong. It follows the classical rules of Pong but runs until a
-player leaves.
+Two-player networked Pong built from scratch in Python using Pygame-CE and UDP sockets.
+The game follows the classical rules of Pong but runs until a player leaves.
 
 Players control one paddle each. They must stop the ball from entering in their goal, but must
 make the ball enter the other player’s goal.
